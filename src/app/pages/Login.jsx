@@ -16,11 +16,19 @@ export function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // Mock login - redirect to client dashboard
-    navigate("/client/dashboard");
+    setError("");
+
+    if (email === "client@kfupm.edu.sa" && password === "client123") {
+      navigate("src/app/pages/ClientDashboard.jsx");
+    } else if (email === "provider@kfupm.edu.sa" && password === "provider123") {
+      navigate("src/app/pages/ProviderDashboard.jsx");
+    } else {
+      setError("Invalid email or password.");
+    }
   };
 
   return (
@@ -36,7 +44,19 @@ export function Login() {
             <CardDescription>Login to your Mahamma account</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-3 text-sm text-blue-800 bg-blue-50 rounded-md">
+              <p className="font-semibold mb-1">Example Accounts:</p>
+              <ul className="list-disc list-inside bg-transparent space-y-1">
+                <li>Client: <strong>client@kfupm.edu.sa</strong> / client123</li>
+                <li>Freelancer: <strong>freelancer@kfupm.edu.sa</strong> / freelancer123</li>
+              </ul>
+            </div>
             <form onSubmit={handleLogin} className="space-y-4">
+              {error && (
+                <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">KFUPM Email</Label>
                 <Input
