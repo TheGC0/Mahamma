@@ -14,6 +14,7 @@ import { BrowseTasks } from "./pages/BrowseTasks";
 import { ProviderProfile } from "./pages/ProviderProfile";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { Messages } from "./pages/Messages";
+import { ServiceDetail } from "./pages/ServiceDetail";
 
 export const router = createBrowserRouter([
   {
@@ -34,7 +35,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/services/:id",
-    Component: BrowseServices, // In a real app, this would be ServiceDetail page
+    Component: ServiceDetail,
   },
   {
     path: "/client/dashboard",
