@@ -41,7 +41,6 @@ import {
   DialogTrigger,
 } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
-import { toast } from "sonner";
 
 export function JobWorkspace() {
   const navigate = useNavigate();
@@ -754,7 +753,6 @@ export function JobWorkspace() {
                 <Button
                   variant="outline"
                   className="w-full justify-start bg-white"
-                  onClick={() => toast.info("Report has been sent to our safety team.")}
                 >
                   <AlertTriangle className="h-4 w-4 mr-2" />
                   Report an Issue
@@ -762,7 +760,6 @@ export function JobWorkspace() {
                 <Button
                   variant="outline"
                   className="w-full justify-start bg-white"
-                  onClick={() => toast.info("Connecting to support...")}
                 >
                   <MessageIcon className="h-4 w-4 mr-2" />
                   Contact Support
