@@ -9,20 +9,38 @@ import {
 import { AdminShell } from './components/AdminShell.jsx'
 import { CategoryModal, ResolveDisputeModal, Toast } from './components/Modals.jsx'
 import { LoginScreen } from './components/LoginScreen.jsx'
+import {
+  clearWorkspaceSnapshot,
+  loadWorkspaceSnapshot,
+  saveWorkspaceSnapshot,
+} from './lib/workspaceStorage.js'
 import './App.css'
 
 function App() {
-  const [screen, setScreen] = useState('login')
+  const [persistedWorkspace] = useState(() => loadWorkspaceSnapshot())
+  const [screen, setScreen] = useState(() => persistedWorkspace?.screen ?? 'login')
   const [authError, setAuthError] = useState('')
-  const [activeTab, setActiveTab] = useState('verification')
-  const [verifications, setVerifications] = useState(() => cloneVerifications())
-  const [issues, setIssues] = useState(() => cloneIssues())
-  const [categories, setCategories] = useState(() => cloneCategories())
-  const [selectedIssueId, setSelectedIssueId] = useState(INITIAL_ISSUES[0].id)
+  const [activeTab, setActiveTab] = useState(
+    () => persistedWorkspace?.activeTab ?? 'verification',
+  )
+  const [verifications, setVerifications] = useState(() =>
+    persistedWorkspace?.verifications ?? cloneVerifications(),
+  )
+  const [issues, setIssues] = useState(() =>
+    persistedWorkspace?.issues ?? cloneIssues(),
+  )
+  const [categories, setCategories] = useState(() =>
+    persistedWorkspace?.categories ?? cloneCategories(),
+  )
+  const [selectedIssueId, setSelectedIssueId] = useState(
+    () => persistedWorkspace?.selectedIssueId ?? INITIAL_ISSUES[0].id,
+  )
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [modal, setModal] = useState(null)
   const [toast, setToast] = useState(null)
-  const [user, setUser] = useState({ displayName: 'Admin', email: '' })
+  const [user, setUser] = useState(
+    () => persistedWorkspace?.user ?? { displayName: 'Admin', email: '' },
+  )
 
   const selectedIssue =
     issues.find((issue) => issue.id === selectedIssueId) ?? issues[0]
@@ -60,6 +78,23 @@ function App() {
       document.body.style.overflow = ''
     }
   }, [modal])
+
+  useEffect(() => {
+    if (screen === 'admin') {
+      saveWorkspaceSnapshot({
+        screen,
+        activeTab,
+        verifications,
+        issues,
+        categories,
+        selectedIssueId,
+        user,
+      })
+      return
+    }
+
+    clearWorkspaceSnapshot()
+  }, [screen, activeTab, verifications, issues, categories, selectedIssueId, user])
 
   function notify(title, message = '') {
     setToast({ title, message })
@@ -102,6 +137,7 @@ function App() {
     setUser({ displayName: 'Admin', email: '' })
     setAuthError('')
     resetWorkspace()
+    clearWorkspaceSnapshot()
   }
 
   function handleVerificationAction(id, nextStatus) {
