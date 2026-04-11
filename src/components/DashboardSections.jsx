@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   AlertTriangle,
+  ArrowUpDown,
   CheckCircle2,
   Eye,
   Facebook,
@@ -155,7 +156,26 @@ export function ReportsPanel({
   onViewEvidence,
 }) {
   const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const normalizedQuery = query.trim().toLowerCase()
+  const statusOptions = [
+    { id: 'all', label: 'All', count: issues.length },
+    {
+      id: 'pending',
+      label: 'Pending',
+      count: issues.filter((issue) => issue.status === 'pending').length,
+    },
+    {
+      id: 'reviewing',
+      label: 'Reviewing',
+      count: issues.filter((issue) => issue.status === 'reviewing').length,
+    },
+    {
+      id: 'resolved',
+      label: 'Resolved',
+      count: issues.filter((issue) => issue.status === 'resolved').length,
+    },
+  ]
   const visibleIssues = normalizedQuery
     ? issues.filter((issue) =>
         [
@@ -173,9 +193,14 @@ export function ReportsPanel({
       )
     : issues
 
-  const detailIssue = visibleIssues.length
-    ? visibleIssues.find((issue) => issue.id === selectedIssueId) ??
-      visibleIssues[0] ??
+  const filteredIssues =
+    statusFilter === 'all'
+      ? visibleIssues
+      : visibleIssues.filter((issue) => issue.status === statusFilter)
+
+  const detailIssue = filteredIssues.length
+    ? filteredIssues.find((issue) => issue.id === selectedIssueId) ??
+      filteredIssues[0] ??
       selectedIssue ??
       null
     : null
@@ -216,14 +241,28 @@ export function ReportsPanel({
               ) : null}
             </label>
             <span className="panel-count">
-              {visibleIssues.length} of {issues.length}
+              {filteredIssues.length} of {issues.length}
             </span>
           </div>
         </div>
 
+        <div className="filter-strip" aria-label="Issue status filters">
+          {statusOptions.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={`filter-chip${statusFilter === option.id ? ' filter-chip--active' : ''}`}
+              onClick={() => setStatusFilter(option.id)}
+            >
+              <span>{option.label}</span>
+              <span className="filter-chip__count">{option.count}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="issue-list">
-          {visibleIssues.length ? (
-            visibleIssues.map((issue) => (
+          {filteredIssues.length ? (
+            filteredIssues.map((issue) => (
               <button
                 key={issue.id}
                 type="button"
@@ -362,8 +401,13 @@ export function ReportsPanel({
           <div className="no-results">
             <AlertTriangle size={32} />
             <p>
-              {query.trim()
-                ? `No issue matches "${query.trim()}".`
+              {query.trim() || statusFilter !== 'all'
+                ? `No issue matches ${[
+                    query.trim() ? `"${query.trim()}"` : null,
+                    statusFilter !== 'all' ? `status ${statusFilter}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' and ')}.`
                 : 'Select an issue to view details'}
             </p>
           </div>
@@ -442,12 +486,24 @@ export function AnalyticsPanel() {
 
 export function CategoriesPanel({ categories, onAdd, onEdit, onView }) {
   const [query, setQuery] = useState('')
+  const [sortBy, setSortBy] = useState('jobs-desc')
   const normalizedQuery = query.trim().toLowerCase()
   const visibleCategories = normalizedQuery
     ? categories.filter((category) =>
         [category.name, String(category.jobs)].join(' ').toLowerCase().includes(normalizedQuery),
       )
     : categories
+  const orderedCategories = [...visibleCategories].sort((left, right) => {
+    if (sortBy === 'name-asc') {
+      return left.name.localeCompare(right.name)
+    }
+
+    if (sortBy === 'jobs-asc') {
+      return left.jobs - right.jobs
+    }
+
+    return right.jobs - left.jobs
+  })
 
   return (
     <section
@@ -481,17 +537,30 @@ export function CategoriesPanel({ categories, onAdd, onEdit, onView }) {
               >
                 <X size={12} />
               </button>
-            ) : null}
+              ) : null}
           </label>
           <span className="panel-count">
-            {visibleCategories.length} of {categories.length}
+            {orderedCategories.length} of {categories.length}
           </span>
+          <label className="sort-field">
+            <ArrowUpDown size={14} className="sort-field__icon" aria-hidden="true" />
+            <select
+              className="panel-select"
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+              aria-label="Sort categories"
+            >
+              <option value="jobs-desc">Most jobs</option>
+              <option value="jobs-asc">Fewest jobs</option>
+              <option value="name-asc">Name A-Z</option>
+            </select>
+          </label>
         </div>
       </div>
 
       <div className="category-list">
-        {visibleCategories.length ? (
-          visibleCategories.map((category) => (
+        {orderedCategories.length ? (
+          orderedCategories.map((category) => (
             <div key={category.id} className="category-row">
               <div>
                 <p className="category-row__title">{category.name}</p>
