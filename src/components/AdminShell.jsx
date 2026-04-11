@@ -30,6 +30,14 @@ export function AdminShell({
   categories,
   selectedIssueId,
   onSelectIssue,
+  reportQuery,
+  onReportQueryChange,
+  reportStatusFilter,
+  onReportStatusFilterChange,
+  categoryQuery,
+  onCategoryQueryChange,
+  categorySortBy,
+  onCategorySortByChange,
   onVerificationAction,
   onResolveIssue,
   onCategoryAdd,
@@ -227,6 +235,10 @@ export function AdminShell({
                 selectedIssue={selectedIssue}
                 selectedIssueId={selectedIssueId}
                 onSelectIssue={onSelectIssue}
+                query={reportQuery}
+                onQueryChange={onReportQueryChange}
+                statusFilter={reportStatusFilter}
+                onStatusFilterChange={onReportStatusFilterChange}
                 onResolveIssue={onResolveIssue}
                 onContact={onIssueContact}
                 onViewDetails={onIssueDetails}
@@ -239,6 +251,10 @@ export function AdminShell({
             {activeTab === 'categories' ? (
               <CategoriesPanel
                 categories={categories}
+                query={categoryQuery}
+                onQueryChange={onCategoryQueryChange}
+                sortBy={categorySortBy}
+                onSortByChange={onCategorySortByChange}
                 onAdd={onCategoryAdd}
                 onEdit={onCategoryEdit}
                 onView={onCategoryView}

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   AlertTriangle,
   ArrowUpDown,
@@ -150,13 +149,15 @@ export function ReportsPanel({
   selectedIssue,
   selectedIssueId,
   onSelectIssue,
+  query = '',
+  onQueryChange,
+  statusFilter = 'all',
+  onStatusFilterChange,
   onResolveIssue,
   onContact,
   onViewDetails,
   onViewEvidence,
 }) {
-  const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
   const normalizedQuery = query.trim().toLowerCase()
   const statusOptions = [
     { id: 'all', label: 'All', count: issues.length },
@@ -227,14 +228,14 @@ export function ReportsPanel({
                 type="search"
                 value={query}
                 placeholder="Search issues"
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => onQueryChange(event.target.value)}
               />
               {query ? (
                 <button
                   type="button"
                   className="search-clear"
                   aria-label="Clear issue search"
-                  onClick={() => setQuery('')}
+                  onClick={() => onQueryChange('')}
                 >
                   <X size={12} />
                 </button>
@@ -252,7 +253,7 @@ export function ReportsPanel({
               key={option.id}
               type="button"
               className={`filter-chip${statusFilter === option.id ? ' filter-chip--active' : ''}`}
-              onClick={() => setStatusFilter(option.id)}
+              onClick={() => onStatusFilterChange(option.id)}
             >
               <span>{option.label}</span>
               <span className="filter-chip__count">{option.count}</span>
@@ -484,9 +485,16 @@ export function AnalyticsPanel() {
   )
 }
 
-export function CategoriesPanel({ categories, onAdd, onEdit, onView }) {
-  const [query, setQuery] = useState('')
-  const [sortBy, setSortBy] = useState('jobs-desc')
+export function CategoriesPanel({
+  categories,
+  query = '',
+  onQueryChange,
+  sortBy = 'jobs-desc',
+  onSortByChange,
+  onAdd,
+  onEdit,
+  onView,
+}) {
   const normalizedQuery = query.trim().toLowerCase()
   const visibleCategories = normalizedQuery
     ? categories.filter((category) =>
@@ -526,18 +534,18 @@ export function CategoriesPanel({ categories, onAdd, onEdit, onView }) {
               type="search"
               value={query}
               placeholder="Search categories"
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => onQueryChange(event.target.value)}
             />
             {query ? (
               <button
                 type="button"
                 className="search-clear"
                 aria-label="Clear category search"
-                onClick={() => setQuery('')}
+                onClick={() => onQueryChange('')}
               >
                 <X size={12} />
               </button>
-              ) : null}
+            ) : null}
           </label>
           <span className="panel-count">
             {orderedCategories.length} of {categories.length}
@@ -547,7 +555,7 @@ export function CategoriesPanel({ categories, onAdd, onEdit, onView }) {
             <select
               className="panel-select"
               value={sortBy}
-              onChange={(event) => setSortBy(event.target.value)}
+              onChange={(event) => onSortByChange(event.target.value)}
               aria-label="Sort categories"
             >
               <option value="jobs-desc">Most jobs</option>

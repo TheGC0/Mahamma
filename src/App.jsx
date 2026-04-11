@@ -18,15 +18,39 @@ import './App.css'
 
 const DASHBOARD_TABS = new Set(['verification', 'reports', 'analytics', 'categories'])
 const ISSUE_IDS = new Set(INITIAL_ISSUES.map((issue) => issue.id))
+const REPORT_STATUS_FILTERS = new Set(['all', 'pending', 'reviewing', 'resolved'])
+const CATEGORY_SORT_OPTIONS = new Set(['jobs-desc', 'jobs-asc', 'name-asc'])
+const DEFAULT_REPORT_STATUS_FILTER = 'all'
+const DEFAULT_CATEGORY_SORT = 'jobs-desc'
 
-function getInitialDashboardTab(snapshot) {
-  if (typeof window !== 'undefined') {
-    const hash = window.location.hash.replace('#', '')
-    if (DASHBOARD_TABS.has(hash)) {
-      return hash
-    }
+function readUrlViewState() {
+  if (typeof window === 'undefined') {
+    return {}
   }
 
+  const url = new URL(window.location.href)
+  const hash = url.hash.replace('#', '')
+  const reportStatusFilter = url.searchParams.get('reportStatus')
+  const categorySortBy = url.searchParams.get('categorySort')
+
+  return {
+    activeTab: DASHBOARD_TABS.has(hash) ? hash : null,
+    issueId: url.searchParams.get('issue'),
+    reportQuery: url.searchParams.has('reportQuery')
+      ? url.searchParams.get('reportQuery') ?? ''
+      : null,
+    reportStatusFilter: REPORT_STATUS_FILTERS.has(reportStatusFilter)
+      ? reportStatusFilter
+      : null,
+    categoryQuery: url.searchParams.has('categoryQuery')
+      ? url.searchParams.get('categoryQuery') ?? ''
+      : null,
+    categorySortBy: CATEGORY_SORT_OPTIONS.has(categorySortBy) ? categorySortBy : null,
+  }
+}
+
+function getInitialDashboardTab(snapshot, urlState) {
+  if (urlState?.activeTab) return urlState.activeTab
   if (snapshot?.activeTab && DASHBOARD_TABS.has(snapshot.activeTab)) {
     return snapshot.activeTab
   }
@@ -34,14 +58,9 @@ function getInitialDashboardTab(snapshot) {
   return 'verification'
 }
 
-function getInitialIssueId(snapshot, activeTab) {
-  if (typeof window !== 'undefined' && activeTab === 'reports') {
-    const url = new URL(window.location.href)
-    const issueId = url.searchParams.get('issue')
-
-    if (issueId && ISSUE_IDS.has(issueId)) {
-      return issueId
-    }
+function getInitialIssueId(snapshot, activeTab, urlState) {
+  if (activeTab === 'reports' && urlState?.issueId && ISSUE_IDS.has(urlState.issueId)) {
+    return urlState.issueId
   }
 
   if (snapshot?.selectedIssueId && ISSUE_IDS.has(snapshot.selectedIssueId)) {
@@ -49,6 +68,38 @@ function getInitialIssueId(snapshot, activeTab) {
   }
 
   return INITIAL_ISSUES[0].id
+}
+
+function getInitialReportFilters(snapshot, activeTab, urlState) {
+  const reportQuery =
+    activeTab === 'reports' && urlState && urlState.reportQuery !== null
+      ? urlState.reportQuery
+      : snapshot?.reportQuery ?? ''
+
+  const reportStatusFilter =
+    activeTab === 'reports' && urlState?.reportStatusFilter
+      ? urlState.reportStatusFilter
+      : REPORT_STATUS_FILTERS.has(snapshot?.reportStatusFilter)
+        ? snapshot.reportStatusFilter
+        : DEFAULT_REPORT_STATUS_FILTER
+
+  return { query: reportQuery, statusFilter: reportStatusFilter }
+}
+
+function getInitialCategoryFilters(snapshot, activeTab, urlState) {
+  const query =
+    activeTab === 'categories' && urlState && urlState.categoryQuery !== null
+      ? urlState.categoryQuery
+      : snapshot?.categoryQuery ?? ''
+
+  const sortBy =
+    activeTab === 'categories' && urlState?.categorySortBy
+      ? urlState.categorySortBy
+      : CATEGORY_SORT_OPTIONS.has(snapshot?.categorySortBy)
+        ? snapshot.categorySortBy
+        : DEFAULT_CATEGORY_SORT
+
+  return { query, sortBy }
 }
 
 function cloneWorkspaceValue(value) {
@@ -61,7 +112,18 @@ function cloneWorkspaceValue(value) {
 
 function App() {
   const [persistedWorkspace] = useState(() => loadWorkspaceSnapshot())
-  const initialActiveTab = getInitialDashboardTab(persistedWorkspace)
+  const [initialUrlState] = useState(() => readUrlViewState())
+  const initialActiveTab = getInitialDashboardTab(persistedWorkspace, initialUrlState)
+  const initialReportFilters = getInitialReportFilters(
+    persistedWorkspace,
+    initialActiveTab,
+    initialUrlState,
+  )
+  const initialCategoryFilters = getInitialCategoryFilters(
+    persistedWorkspace,
+    initialActiveTab,
+    initialUrlState,
+  )
   const [screen, setScreen] = useState(() => persistedWorkspace?.screen ?? 'login')
   const [authError, setAuthError] = useState('')
   const [activeTab, setActiveTab] = useState(() => initialActiveTab)
@@ -75,7 +137,15 @@ function App() {
     persistedWorkspace?.categories ?? cloneCategories(),
   )
   const [selectedIssueId, setSelectedIssueId] = useState(() =>
-    getInitialIssueId(persistedWorkspace, initialActiveTab),
+    getInitialIssueId(persistedWorkspace, initialActiveTab, initialUrlState),
+  )
+  const [reportQuery, setReportQuery] = useState(() => initialReportFilters.query)
+  const [reportStatusFilter, setReportStatusFilter] = useState(
+    () => initialReportFilters.statusFilter,
+  )
+  const [categoryQuery, setCategoryQuery] = useState(() => initialCategoryFilters.query)
+  const [categorySortBy, setCategorySortBy] = useState(
+    () => initialCategoryFilters.sortBy,
   )
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [modal, setModal] = useState(null)
@@ -129,8 +199,20 @@ function App() {
 
         if (activeTab === 'reports') {
           url.searchParams.set('issue', selectedIssueId)
+          url.searchParams.set('reportQuery', reportQuery)
+          url.searchParams.set('reportStatus', reportStatusFilter)
         } else {
           url.searchParams.delete('issue')
+          url.searchParams.delete('reportQuery')
+          url.searchParams.delete('reportStatus')
+        }
+
+        if (activeTab === 'categories') {
+          url.searchParams.set('categoryQuery', categoryQuery)
+          url.searchParams.set('categorySort', categorySortBy)
+        } else {
+          url.searchParams.delete('categoryQuery')
+          url.searchParams.delete('categorySort')
         }
 
         const nextUrl = `${url.pathname}${url.search}${url.hash}`
@@ -146,13 +228,29 @@ function App() {
         issues,
         categories,
         selectedIssueId,
+        reportQuery,
+        reportStatusFilter,
+        categoryQuery,
+        categorySortBy,
         user,
       })
       return
     }
 
     clearWorkspaceSnapshot()
-  }, [screen, activeTab, verifications, issues, categories, selectedIssueId, user])
+  }, [
+    screen,
+    activeTab,
+    verifications,
+    issues,
+    categories,
+    selectedIssueId,
+    reportQuery,
+    reportStatusFilter,
+    categoryQuery,
+    categorySortBy,
+    user,
+  ])
 
   function notify(title, message = '', options = {}) {
     setToast({ title, message, ...options })
@@ -164,6 +262,10 @@ function App() {
       issues,
       categories,
       selectedIssueId,
+      reportQuery,
+      reportStatusFilter,
+      categoryQuery,
+      categorySortBy,
     })
   }
 
@@ -172,6 +274,18 @@ function App() {
     setIssues(snapshot.issues)
     setCategories(snapshot.categories)
     setSelectedIssueId(snapshot.selectedIssueId)
+    setReportQuery(snapshot.reportQuery ?? '')
+    setReportStatusFilter(
+      REPORT_STATUS_FILTERS.has(snapshot.reportStatusFilter)
+        ? snapshot.reportStatusFilter
+        : DEFAULT_REPORT_STATUS_FILTER,
+    )
+    setCategoryQuery(snapshot.categoryQuery ?? '')
+    setCategorySortBy(
+      CATEGORY_SORT_OPTIONS.has(snapshot.categorySortBy)
+        ? snapshot.categorySortBy
+        : DEFAULT_CATEGORY_SORT,
+    )
   }
 
   function notifyWithUndo(snapshot, title, message, undoTitle, undoMessage) {
@@ -188,6 +302,10 @@ function App() {
     setVerifications(cloneVerifications())
     setIssues(cloneIssues())
     setCategories(cloneCategories())
+    setReportQuery('')
+    setReportStatusFilter(DEFAULT_REPORT_STATUS_FILTER)
+    setCategoryQuery('')
+    setCategorySortBy(DEFAULT_CATEGORY_SORT)
     setActiveTab(nextTab)
     setSelectedIssueId(nextIssueId)
   }
@@ -209,10 +327,6 @@ function App() {
     setUser({ displayName: 'Admin', email: match.email })
     setScreen('admin')
     setProfileMenuOpen(false)
-    resetWorkspace(
-      activeTab,
-      activeTab === 'reports' ? selectedIssueId : INITIAL_ISSUES[0].id,
-    )
     notify('Welcome back', 'The admin workspace is ready.')
   }
 
@@ -228,6 +342,10 @@ function App() {
       const url = new URL(window.location.href)
       url.hash = ''
       url.searchParams.delete('issue')
+      url.searchParams.delete('reportQuery')
+      url.searchParams.delete('reportStatus')
+      url.searchParams.delete('categoryQuery')
+      url.searchParams.delete('categorySort')
       window.history.replaceState(null, '', `${url.pathname}${url.search}`)
     }
     clearWorkspaceSnapshot()
@@ -368,6 +486,14 @@ function App() {
           categories={categories}
           selectedIssueId={selectedIssueId}
           onSelectIssue={setSelectedIssueId}
+          reportQuery={reportQuery}
+          onReportQueryChange={setReportQuery}
+          reportStatusFilter={reportStatusFilter}
+          onReportStatusFilterChange={setReportStatusFilter}
+          categoryQuery={categoryQuery}
+          onCategoryQueryChange={setCategoryQuery}
+          categorySortBy={categorySortBy}
+          onCategorySortByChange={setCategorySortBy}
           onVerificationAction={handleVerificationAction}
           onResolveIssue={openResolveModal}
           onCategoryAdd={() => openCategoryModal('add')}
