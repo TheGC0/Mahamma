@@ -16,12 +16,29 @@ import {
 } from './lib/workspaceStorage.js'
 import './App.css'
 
+const DASHBOARD_TABS = new Set(['verification', 'reports', 'analytics', 'categories'])
+
+function getInitialDashboardTab(snapshot) {
+  if (typeof window !== 'undefined') {
+    const hash = window.location.hash.replace('#', '')
+    if (DASHBOARD_TABS.has(hash)) {
+      return hash
+    }
+  }
+
+  if (snapshot?.activeTab && DASHBOARD_TABS.has(snapshot.activeTab)) {
+    return snapshot.activeTab
+  }
+
+  return 'verification'
+}
+
 function App() {
   const [persistedWorkspace] = useState(() => loadWorkspaceSnapshot())
   const [screen, setScreen] = useState(() => persistedWorkspace?.screen ?? 'login')
   const [authError, setAuthError] = useState('')
-  const [activeTab, setActiveTab] = useState(
-    () => persistedWorkspace?.activeTab ?? 'verification',
+  const [activeTab, setActiveTab] = useState(() =>
+    getInitialDashboardTab(persistedWorkspace),
   )
   const [verifications, setVerifications] = useState(() =>
     persistedWorkspace?.verifications ?? cloneVerifications(),
@@ -81,6 +98,13 @@ function App() {
 
   useEffect(() => {
     if (screen === 'admin') {
+      if (typeof window !== 'undefined') {
+        const nextUrl = `${window.location.pathname}${window.location.search}#${activeTab}`
+        if (window.location.href !== `${window.location.origin}${nextUrl}`) {
+          window.history.replaceState(null, '', nextUrl)
+        }
+      }
+
       saveWorkspaceSnapshot({
         screen,
         activeTab,
@@ -100,11 +124,11 @@ function App() {
     setToast({ title, message })
   }
 
-  function resetWorkspace() {
+  function resetWorkspace(nextTab = 'verification') {
     setVerifications(cloneVerifications())
     setIssues(cloneIssues())
     setCategories(cloneCategories())
-    setActiveTab('verification')
+    setActiveTab(nextTab)
     setSelectedIssueId(INITIAL_ISSUES[0].id)
   }
 
@@ -125,7 +149,7 @@ function App() {
     setUser({ displayName: 'Admin', email: match.email })
     setScreen('admin')
     setProfileMenuOpen(false)
-    resetWorkspace()
+    resetWorkspace(activeTab)
     notify('Welcome back', 'The admin workspace is ready.')
   }
 
@@ -136,7 +160,10 @@ function App() {
     setToast(null)
     setUser({ displayName: 'Admin', email: '' })
     setAuthError('')
-    resetWorkspace()
+    resetWorkspace('verification')
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
     clearWorkspaceSnapshot()
   }
 
@@ -218,6 +245,18 @@ function App() {
     notify('Sign up preview', 'Registration is not part of this prototype.')
   }
 
+  async function handleCopyViewLink() {
+    if (typeof window === 'undefined') return
+
+    try {
+      await window.navigator.clipboard.writeText(window.location.href)
+      notify('Link copied', 'Current dashboard view copied to clipboard.')
+    } catch {
+      window.prompt('Copy this dashboard link', window.location.href)
+      notify('Link ready', 'Clipboard access was unavailable.')
+    }
+  }
+
   return (
     <>
       {screen === 'login' ? (
@@ -275,10 +314,11 @@ function App() {
           onFooterSocial={(label) =>
             handleGlobalAction(label, 'External social link placeholder.')
           }
+          onShareLink={handleCopyViewLink}
           profileMenuOpen={profileMenuOpen}
           setProfileMenuOpen={setProfileMenuOpen}
           onResetDemo={() => {
-            resetWorkspace()
+            resetWorkspace(activeTab)
             setModal(null)
             setProfileMenuOpen(false)
             notify('Demo reset', 'All lists were restored to their starting state.')

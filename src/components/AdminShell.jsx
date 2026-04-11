@@ -4,6 +4,7 @@ import {
   ChevronDown,
   LogOut,
   MessageSquare,
+  Link2,
   User,
 } from 'lucide-react'
 import { NAV_LINKS, SUMMARY_METRICS, TAB_ITEMS } from '../data/adminPrototypeData.js'
@@ -40,6 +41,7 @@ export function AdminShell({
   onNavAction,
   onFooterAction,
   onFooterSocial,
+  onShareLink,
   profileMenuOpen,
   setProfileMenuOpen,
   onResetDemo,
@@ -128,6 +130,14 @@ export function AdminShell({
             >
               <MessageSquare size={16} />
               <span className="badge">3</span>
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="Copy current view link"
+              onClick={onShareLink}
+            >
+              <Link2 size={16} />
             </button>
 
             <div className="profile-shell">
