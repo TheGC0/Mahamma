@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
@@ -50,7 +51,7 @@ export function ProviderDashboard() {
     },
   ];
 
-  const activeJobs = [
+  const [activeJobs, setActiveJobs] = useState([
     {
       id: "j1",
       title: "E-commerce Website Design",
@@ -67,7 +68,7 @@ export function ProviderDashboard() {
       price: 300,
       deadline: "Awaiting approval",
     },
-  ];
+  ]);
 
   const taskRequests = [
     {
@@ -95,8 +96,10 @@ export function ProviderDashboard() {
     activeOrders: 2,
   };
 
-  const handleMarkAsDelivered = (jobTitle) => {
-    alert(`"${jobTitle}" marked as delivered`);
+  const handleMarkAsDelivered = (jobId) => {
+    setActiveJobs((jobs) =>
+      jobs.map((j) => (j.id === jobId ? { ...j, status: "delivered", deadline: "Awaiting approval" } : j))
+    );
   };
 
   return (
@@ -316,7 +319,7 @@ export function ProviderDashboard() {
                     {job.status === "in_progress" && (
                       <Button
                         variant="outline"
-                        onClick={() => handleMarkAsDelivered(job.title)}
+                        onClick={() => handleMarkAsDelivered(job.id)}
                       >
                         Mark as Delivered
                       </Button>

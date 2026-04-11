@@ -45,9 +45,12 @@ export function LoginScreen({ onLogin, onSignUp, error }) {
             <input
               className="input"
               type="email"
+              name="email"
               value={form.email}
               placeholder="s202012345@kfupm.edu.sa"
               autoComplete="username"
+              autoFocus
+              required
               onChange={(event) =>
                 setForm((current) => ({ ...current, email: event.target.value }))
               }
@@ -59,15 +62,21 @@ export function LoginScreen({ onLogin, onSignUp, error }) {
             <input
               className="input"
               type="password"
+              name="password"
               value={form.password}
               autoComplete="current-password"
+              required
               onChange={(event) =>
                 setForm((current) => ({ ...current, password: event.target.value }))
               }
             />
           </label>
 
-          {error ? <p className="error-text">{error}</p> : null}
+          {error ? (
+            <p className="error-text" role="alert">
+              {error}
+            </p>
+          ) : null}
 
           <button className="btn btn--primary btn--full" type="submit">
             Login

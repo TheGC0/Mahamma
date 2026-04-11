@@ -39,9 +39,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
           {/* Logo */}
           <a href="/" className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <div className="bg-[#F7931E] rounded-lg p-2">
-                <span className="text-white text-xl font-bold">M</span>
-              </div>
+              <img src="/logo_2.png" alt="Mahamma logo" className="h-10 w-10 rounded-lg object-contain" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Mahamma</h1>
                 <p className="text-xs text-gray-500 -mt-1">مهمّة</p>
