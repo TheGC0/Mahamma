@@ -12,6 +12,9 @@ import {
   CardTitle,
 } from "../components/ui/card";
 
+const EXAMPLE_CLIENT = { email: "client@kfupm.edu.sa", password: "client123" };
+const EXAMPLE_PROVIDER = { email: "provider@kfupm.edu.sa", password: "provider123" };
+
 export function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -22,9 +25,9 @@ export function Login() {
     e.preventDefault();
     setError("");
 
-    if (email === "client@kfupm.edu.sa" && password === "client123") {
+    if (email === EXAMPLE_CLIENT.email && password === EXAMPLE_CLIENT.password) {
       navigate("src/app/pages/ClientDashboard.jsx");
-    } else if (email === "provider@kfupm.edu.sa" && password === "provider123") {
+    } else if (email === EXAMPLE_PROVIDER.email && password === EXAMPLE_PROVIDER.password) {
       navigate("src/app/pages/ProviderDashboard.jsx");
     } else {
       setError("Invalid email or password.");
@@ -47,8 +50,8 @@ export function Login() {
             <div className="mb-4 p-3 text-sm text-blue-800 bg-blue-50 rounded-md">
               <p className="font-semibold mb-1">Example Accounts:</p>
               <ul className="list-disc list-inside bg-transparent space-y-1">
-                <li>Client: <strong>client@kfupm.edu.sa</strong> / client123</li>
-                <li>Freelancer: <strong>freelancer@kfupm.edu.sa</strong> / freelancer123</li>
+                <li>Client: <strong>{EXAMPLE_CLIENT.email}</strong> / {EXAMPLE_CLIENT.password}</li>
+                <li>Freelancer: <strong>{EXAMPLE_PROVIDER.email}</strong> / {EXAMPLE_PROVIDER.password}</li>
               </ul>
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
