@@ -1,7 +1,71 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, X } from 'lucide-react'
 
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'textarea:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
+
 export function ModalShell({ title, subtitle, wide = false, onClose, children }) {
+  const dialogRef = useRef(null)
+  const previousFocusRef = useRef(null)
+  const titleId = useId()
+  const descriptionId = useId()
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement
+
+    const dialog = dialogRef.current
+    const autofocusTarget = dialog?.querySelector('[data-autofocus]')
+    const focusTarget = autofocusTarget ?? dialog?.querySelector(FOCUSABLE_SELECTOR) ?? dialog
+
+    focusTarget?.focus?.()
+
+    return () => {
+      const previousFocus = previousFocusRef.current
+      if (previousFocus && typeof previousFocus.focus === 'function') {
+        previousFocus.focus()
+      }
+    }
+  }, [])
+
+  function handleKeyDown(event) {
+    if (event.key !== 'Tab') return
+
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    const focusableElements = Array.from(dialog.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
+      (element) => element instanceof HTMLElement && !element.hasAttribute('disabled'),
+    )
+
+    if (!focusableElements.length) {
+      event.preventDefault()
+      dialog.focus()
+      return
+    }
+
+    const firstFocusableElement = focusableElements[0]
+    const lastFocusableElement = focusableElements[focusableElements.length - 1]
+
+    if (event.shiftKey) {
+      if (document.activeElement === firstFocusableElement) {
+        event.preventDefault()
+        lastFocusableElement.focus()
+      }
+      return
+    }
+
+    if (document.activeElement === lastFocusableElement) {
+      event.preventDefault()
+      firstFocusableElement.focus()
+    }
+  }
+
   return (
     <div
       className="modal-backdrop"
@@ -11,11 +75,26 @@ export function ModalShell({ title, subtitle, wide = false, onClose, children })
         }
       }}
     >
-      <section className={`modal${wide ? ' modal--wide' : ''}`} role="dialog" aria-modal="true">
+      <section
+        className={`modal${wide ? ' modal--wide' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={subtitle ? descriptionId : undefined}
+        tabIndex={-1}
+        ref={dialogRef}
+        onKeyDown={handleKeyDown}
+      >
         <div className="modal__head">
           <div>
-            <h3 className="modal__title">{title}</h3>
-            {subtitle ? <p className="modal__subtitle">{subtitle}</p> : null}
+            <h3 className="modal__title" id={titleId}>
+              {title}
+            </h3>
+            {subtitle ? (
+              <p className="modal__subtitle" id={descriptionId}>
+                {subtitle}
+              </p>
+            ) : null}
           </div>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Close">
             <X size={14} />
@@ -62,6 +141,7 @@ export function ResolveDisputeModal({ issue, onClose, onResolve }) {
             className="textarea"
             value={notes}
             placeholder="Explain your decision and any action taken..."
+            data-autofocus
             onChange={(event) => {
               setNotes(event.target.value)
               if (error) setError('')
@@ -131,6 +211,7 @@ export function CategoryModal({ mode, category, onClose, onSave }) {
             type="text"
             value={name}
             placeholder="Category name"
+            data-autofocus
             onChange={(event) => {
               setName(event.target.value)
               if (error) setError('')

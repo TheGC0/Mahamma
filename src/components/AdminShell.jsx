@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import {
   Bell,
   ChevronDown,
@@ -44,9 +45,38 @@ export function AdminShell({
   onResetDemo,
   onLogout,
 }) {
+  const tablistRef = useRef(null)
+
   function selectTab(tabId) {
     setActiveTab(tabId)
     setProfileMenuOpen(false)
+  }
+
+  function handleTabKeyDown(event, tabId) {
+    const tabButtons = Array.from(tablistRef.current?.querySelectorAll('[role="tab"]') ?? [])
+    if (!tabButtons.length) return
+
+    const currentIndex = tabButtons.findIndex((button) => button.dataset.tabId === tabId)
+    if (currentIndex === -1) return
+
+    let nextIndex = currentIndex
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % tabButtons.length
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + tabButtons.length) % tabButtons.length
+    } else if (event.key === 'Home') {
+      nextIndex = 0
+    } else if (event.key === 'End') {
+      nextIndex = tabButtons.length - 1
+    } else {
+      return
+    }
+
+    event.preventDefault()
+    const nextTab = tabButtons[nextIndex]
+    nextTab?.focus()
+    nextTab?.click()
   }
 
   return (
@@ -157,13 +187,19 @@ export function AdminShell({
               ))}
             </section>
 
-            <section className="tab-strip" aria-label="Dashboard sections">
+            <section
+              className="tab-strip"
+              aria-label="Dashboard sections"
+              role="tablist"
+              ref={tablistRef}
+            >
               {TAB_ITEMS.map((tab) => (
                 <TabButton
                   key={tab.id}
                   tab={tab.id === 'reports' ? { ...tab, count: reportCount } : tab}
                   active={tab.id === activeTab}
                   onClick={() => selectTab(tab.id)}
+                  onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
                 />
               ))}
             </section>

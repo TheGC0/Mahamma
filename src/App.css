@@ -183,6 +183,22 @@
   transform: translateY(-1px);
 }
 
+.btn:focus-visible,
+.link-button:focus-visible,
+.topnav-link:focus-visible,
+.icon-btn:focus-visible,
+.profile-trigger:focus-visible,
+.footer__link:focus-visible,
+.socials button:focus-visible,
+.tab-button:focus-visible,
+.modal__close:focus-visible,
+.brand-link:focus-visible,
+.issue-card:focus-visible,
+.link-btn:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.32);
+  outline-offset: 2px;
+}
+
 .btn--primary {
   background: var(--brand);
   color: #fff;

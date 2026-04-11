@@ -37,14 +37,21 @@ export function MetricCard({ metric }) {
   )
 }
 
-export function TabButton({ tab, active, onClick }) {
+export function TabButton({ tab, active, onClick, onKeyDown }) {
   const Icon = tab.icon
 
   return (
     <button
       type="button"
       className={`tab-button${active ? ' tab-button--active' : ''}`}
+      id={`tab-${tab.id}`}
+      data-tab-id={tab.id}
+      role="tab"
+      aria-selected={active}
+      aria-controls={`panel-${tab.id}`}
+      tabIndex={active ? 0 : -1}
       onClick={onClick}
+      onKeyDown={onKeyDown}
     >
       <Icon size={14} />
       <span>
@@ -57,7 +64,12 @@ export function TabButton({ tab, active, onClick }) {
 
 export function VerificationPanel({ verifications, onAction }) {
   return (
-    <section className="panel">
+    <section
+      className="panel"
+      role="tabpanel"
+      id="panel-verification"
+      aria-labelledby="tab-verification"
+    >
       <div className="panel-head">
         <div>
           <h3 className="panel-title">Pending Verifications</h3>
@@ -140,7 +152,12 @@ export function ReportsPanel({
   onViewEvidence,
 }) {
   return (
-    <section className="reports-grid">
+    <section
+      className="reports-grid"
+      role="tabpanel"
+      id="panel-reports"
+      aria-labelledby="tab-reports"
+    >
       <aside className="panel issue-list-panel">
         <h3 className="panel-title">Reported Issues</h3>
         <p className="panel-subtitle">Click to view details</p>
@@ -288,7 +305,12 @@ export function ReportsPanel({
 
 export function AnalyticsPanel() {
   return (
-    <section className="analytics-grid">
+    <section
+      className="analytics-grid"
+      role="tabpanel"
+      id="panel-analytics"
+      aria-labelledby="tab-analytics"
+    >
       <article className="panel chart-card">
         <div className="panel-head">
           <div>
@@ -350,7 +372,12 @@ export function AnalyticsPanel() {
 
 export function CategoriesPanel({ categories, onAdd, onEdit, onView }) {
   return (
-    <section className="panel">
+    <section
+      className="panel"
+      role="tabpanel"
+      id="panel-categories"
+      aria-labelledby="tab-categories"
+    >
       <h3 className="panel-title">Category Management</h3>
       <p className="panel-subtitle">Manage service and task categories</p>
 
