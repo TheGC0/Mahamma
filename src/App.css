@@ -192,6 +192,7 @@
 .socials button:focus-visible,
 .tab-button:focus-visible,
 .search-clear:focus-visible,
+.toast__action:focus-visible,
 .modal__close:focus-visible,
 .brand-link:focus-visible,
 .issue-card:focus-visible,
@@ -1448,6 +1449,7 @@
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.24);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   transform: translateX(-50%);
 }
@@ -1461,6 +1463,7 @@
 }
 
 .toast__text {
+  flex: 1 1 220px;
   display: grid;
   gap: 2px;
 }
@@ -1472,6 +1475,27 @@
 .toast__text span {
   color: #cbd5e1;
   font-size: 12px;
+}
+
+.toast__action {
+  margin-left: auto;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.toast__action:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .no-results {

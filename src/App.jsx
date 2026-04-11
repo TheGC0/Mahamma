@@ -33,6 +33,14 @@ function getInitialDashboardTab(snapshot) {
   return 'verification'
 }
 
+function cloneWorkspaceValue(value) {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value)
+  }
+
+  return JSON.parse(JSON.stringify(value))
+}
+
 function App() {
   const [persistedWorkspace] = useState(() => loadWorkspaceSnapshot())
   const [screen, setScreen] = useState(() => persistedWorkspace?.screen ?? 'login')
@@ -120,8 +128,34 @@ function App() {
     clearWorkspaceSnapshot()
   }, [screen, activeTab, verifications, issues, categories, selectedIssueId, user])
 
-  function notify(title, message = '') {
-    setToast({ title, message })
+  function notify(title, message = '', options = {}) {
+    setToast({ title, message, ...options })
+  }
+
+  function captureWorkspaceState() {
+    return cloneWorkspaceValue({
+      verifications,
+      issues,
+      categories,
+      selectedIssueId,
+    })
+  }
+
+  function restoreWorkspaceState(snapshot) {
+    setVerifications(snapshot.verifications)
+    setIssues(snapshot.issues)
+    setCategories(snapshot.categories)
+    setSelectedIssueId(snapshot.selectedIssueId)
+  }
+
+  function notifyWithUndo(snapshot, title, message, undoTitle, undoMessage) {
+    notify(title, message, {
+      actionLabel: 'Undo',
+      onAction: () => {
+        restoreWorkspaceState(snapshot)
+        notify(undoTitle, undoMessage)
+      },
+    })
   }
 
   function resetWorkspace(nextTab = 'verification') {
@@ -168,21 +202,27 @@ function App() {
   }
 
   function handleVerificationAction(id, nextStatus) {
+    const snapshot = captureWorkspaceState()
+
     setVerifications((items) =>
       items.map((item) =>
         item.id === id ? { ...item, status: nextStatus } : item,
       ),
     )
 
-    notify(
+    notifyWithUndo(
+      snapshot,
       nextStatus === 'approved' ? 'User approved' : 'User rejected',
       'The verification card was updated.',
+      'Verification restored',
+      'The previous verification state was restored.',
     )
   }
 
   function handleResolveIssue(notes) {
     const issueId = modal?.issueId ?? selectedIssue.id
     const resolution = notes.trim() || 'Case resolved and closed.'
+    const snapshot = captureWorkspaceState()
 
     setIssues((items) =>
       items.map((item) =>
@@ -192,13 +232,20 @@ function App() {
       ),
     )
     setModal(null)
-    notify('Dispute resolved', 'The selected case has been closed.')
+    notifyWithUndo(
+      snapshot,
+      'Dispute resolved',
+      'The selected case has been closed.',
+      'Dispute restored',
+      'The previous dispute state was restored.',
+    )
   }
 
   function handleCategorySave(categoryPayload) {
     if (!modal || modal.type !== 'category') return
 
     const safeName = categoryPayload.name.trim()
+    const snapshot = captureWorkspaceState()
 
     if (!safeName) {
       notify('Category needs a name', 'Please enter a category title.')
@@ -213,14 +260,26 @@ function App() {
             : item,
         ),
       )
-      notify('Category updated', `${safeName} has been saved.`)
+      notifyWithUndo(
+        snapshot,
+        'Category updated',
+        `${safeName} has been saved.`,
+        'Category restored',
+        'The previous category state was restored.',
+      )
     } else {
       const id = safeName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
       setCategories((items) => [
         { id: `${id}-${Date.now()}`, name: safeName, jobs: categoryPayload.jobs },
         ...items,
       ])
-      notify('Category created', `${safeName} was added to the list.`)
+      notifyWithUndo(
+        snapshot,
+        'Category created',
+        `${safeName} was added to the list.`,
+        'Category restored',
+        'The previous category list was restored.',
+      )
     }
 
     setModal(null)
@@ -318,10 +377,17 @@ function App() {
           profileMenuOpen={profileMenuOpen}
           setProfileMenuOpen={setProfileMenuOpen}
           onResetDemo={() => {
+            const snapshot = captureWorkspaceState()
             resetWorkspace(activeTab)
             setModal(null)
             setProfileMenuOpen(false)
-            notify('Demo reset', 'All lists were restored to their starting state.')
+            notifyWithUndo(
+              snapshot,
+              'Demo reset',
+              'All lists were restored to their starting state.',
+              'Demo restored',
+              'The previous workspace state was restored.',
+            )
           }}
           onLogout={handleLogout}
         />
@@ -344,7 +410,7 @@ function App() {
         />
       ) : null}
 
-      {toast ? <Toast toast={toast} /> : null}
+      {toast ? <Toast toast={toast} onDismiss={() => setToast(null)} /> : null}
     </>
   )
 }

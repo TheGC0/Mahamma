@@ -249,7 +249,7 @@ export function CategoryModal({ mode, category, onClose, onSave }) {
   )
 }
 
-export function Toast({ toast }) {
+export function Toast({ toast, onDismiss }) {
   return (
     <div className="toast" role="status" aria-live="polite">
       <span className="toast__dot" />
@@ -257,6 +257,18 @@ export function Toast({ toast }) {
         <strong>{toast.title}</strong>
         {toast.message ? <span>{toast.message}</span> : null}
       </div>
+      {toast.actionLabel && typeof toast.onAction === 'function' ? (
+        <button
+          type="button"
+          className="toast__action"
+          onClick={() => {
+            onDismiss?.()
+            toast.onAction()
+          }}
+        >
+          {toast.actionLabel}
+        </button>
+      ) : null}
     </div>
   )
 }
