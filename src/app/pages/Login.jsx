@@ -14,6 +14,7 @@ import {
 
 const EXAMPLE_CLIENT = { email: "client@kfupm.edu.sa", password: "client123" };
 const EXAMPLE_PROVIDER = { email: "provider@kfupm.edu.sa", password: "provider123" };
+const EXAMPLE_ADMIN = { email: "admin@kfupm.edu.sa", password: "admin123" };
 
 export function Login() {
   const navigate = useNavigate();
@@ -29,8 +30,10 @@ export function Login() {
       navigate("/client/dashboard");
     } else if (email === EXAMPLE_PROVIDER.email && password === EXAMPLE_PROVIDER.password) {
       navigate("/provider/dashboard");
+    } else if (email === EXAMPLE_ADMIN.email && password === EXAMPLE_ADMIN.password) {
+      navigate("/admin");
     } else {
-      setError("Invalid email or password.");
+      setError("Invalid email or password. Use one of the example accounts below.");
     }
   };
 
@@ -40,18 +43,17 @@ export function Login() {
       <div className="container mx-auto max-w-md px-4 py-20">
         <Card>
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 bg-[#F7931E] rounded-lg p-3 w-fit">
-              <span className="text-white text-2xl font-bold">M</span>
-            </div>
+            <img src="/logo_2.png" alt="Mahamma logo" className="mx-auto mb-4 h-16 w-16 rounded-lg object-contain" />
             <CardTitle className="text-2xl">Welcome Back</CardTitle>
             <CardDescription>Login to your Mahamma account</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="mb-4 p-3 text-sm text-blue-800 bg-blue-50 rounded-md">
-              <p className="font-semibold mb-1">Example Accounts:</p>
+              <p className="font-semibold mb-1">Demo Accounts:</p>
               <ul className="list-disc list-inside bg-transparent space-y-1">
                 <li>Client: <strong>{EXAMPLE_CLIENT.email}</strong> / {EXAMPLE_CLIENT.password}</li>
                 <li>Freelancer: <strong>{EXAMPLE_PROVIDER.email}</strong> / {EXAMPLE_PROVIDER.password}</li>
+                <li>Admin: <strong>{EXAMPLE_ADMIN.email}</strong> / {EXAMPLE_ADMIN.password}</li>
               </ul>
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
