@@ -17,6 +17,7 @@ import {
 import './App.css'
 
 const DASHBOARD_TABS = new Set(['verification', 'reports', 'analytics', 'categories'])
+const ISSUE_IDS = new Set(INITIAL_ISSUES.map((issue) => issue.id))
 
 function getInitialDashboardTab(snapshot) {
   if (typeof window !== 'undefined') {
@@ -33,6 +34,23 @@ function getInitialDashboardTab(snapshot) {
   return 'verification'
 }
 
+function getInitialIssueId(snapshot, activeTab) {
+  if (typeof window !== 'undefined' && activeTab === 'reports') {
+    const url = new URL(window.location.href)
+    const issueId = url.searchParams.get('issue')
+
+    if (issueId && ISSUE_IDS.has(issueId)) {
+      return issueId
+    }
+  }
+
+  if (snapshot?.selectedIssueId && ISSUE_IDS.has(snapshot.selectedIssueId)) {
+    return snapshot.selectedIssueId
+  }
+
+  return INITIAL_ISSUES[0].id
+}
+
 function cloneWorkspaceValue(value) {
   if (typeof structuredClone === 'function') {
     return structuredClone(value)
@@ -43,11 +61,10 @@ function cloneWorkspaceValue(value) {
 
 function App() {
   const [persistedWorkspace] = useState(() => loadWorkspaceSnapshot())
+  const initialActiveTab = getInitialDashboardTab(persistedWorkspace)
   const [screen, setScreen] = useState(() => persistedWorkspace?.screen ?? 'login')
   const [authError, setAuthError] = useState('')
-  const [activeTab, setActiveTab] = useState(() =>
-    getInitialDashboardTab(persistedWorkspace),
-  )
+  const [activeTab, setActiveTab] = useState(() => initialActiveTab)
   const [verifications, setVerifications] = useState(() =>
     persistedWorkspace?.verifications ?? cloneVerifications(),
   )
@@ -57,8 +74,8 @@ function App() {
   const [categories, setCategories] = useState(() =>
     persistedWorkspace?.categories ?? cloneCategories(),
   )
-  const [selectedIssueId, setSelectedIssueId] = useState(
-    () => persistedWorkspace?.selectedIssueId ?? INITIAL_ISSUES[0].id,
+  const [selectedIssueId, setSelectedIssueId] = useState(() =>
+    getInitialIssueId(persistedWorkspace, initialActiveTab),
   )
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [modal, setModal] = useState(null)
@@ -107,7 +124,16 @@ function App() {
   useEffect(() => {
     if (screen === 'admin') {
       if (typeof window !== 'undefined') {
-        const nextUrl = `${window.location.pathname}${window.location.search}#${activeTab}`
+        const url = new URL(window.location.href)
+        url.hash = activeTab
+
+        if (activeTab === 'reports') {
+          url.searchParams.set('issue', selectedIssueId)
+        } else {
+          url.searchParams.delete('issue')
+        }
+
+        const nextUrl = `${url.pathname}${url.search}${url.hash}`
         if (window.location.href !== `${window.location.origin}${nextUrl}`) {
           window.history.replaceState(null, '', nextUrl)
         }
@@ -158,12 +184,12 @@ function App() {
     })
   }
 
-  function resetWorkspace(nextTab = 'verification') {
+  function resetWorkspace(nextTab = 'verification', nextIssueId = INITIAL_ISSUES[0].id) {
     setVerifications(cloneVerifications())
     setIssues(cloneIssues())
     setCategories(cloneCategories())
     setActiveTab(nextTab)
-    setSelectedIssueId(INITIAL_ISSUES[0].id)
+    setSelectedIssueId(nextIssueId)
   }
 
   function handleLogin(credentials) {
@@ -183,7 +209,10 @@ function App() {
     setUser({ displayName: 'Admin', email: match.email })
     setScreen('admin')
     setProfileMenuOpen(false)
-    resetWorkspace(activeTab)
+    resetWorkspace(
+      activeTab,
+      activeTab === 'reports' ? selectedIssueId : INITIAL_ISSUES[0].id,
+    )
     notify('Welcome back', 'The admin workspace is ready.')
   }
 
@@ -196,7 +225,10 @@ function App() {
     setAuthError('')
     resetWorkspace('verification')
     if (typeof window !== 'undefined') {
-      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      const url = new URL(window.location.href)
+      url.hash = ''
+      url.searchParams.delete('issue')
+      window.history.replaceState(null, '', `${url.pathname}${url.search}`)
     }
     clearWorkspaceSnapshot()
   }
@@ -378,7 +410,10 @@ function App() {
           setProfileMenuOpen={setProfileMenuOpen}
           onResetDemo={() => {
             const snapshot = captureWorkspaceState()
-            resetWorkspace(activeTab)
+            resetWorkspace(
+              activeTab,
+              activeTab === 'reports' ? selectedIssueId : INITIAL_ISSUES[0].id,
+            )
             setModal(null)
             setProfileMenuOpen(false)
             notifyWithUndo(
