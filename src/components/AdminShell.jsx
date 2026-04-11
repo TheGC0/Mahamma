@@ -1,8 +1,10 @@
+import { useRef } from 'react'
 import {
   Bell,
   ChevronDown,
   LogOut,
   MessageSquare,
+  Link2,
   User,
 } from 'lucide-react'
 import { NAV_LINKS, SUMMARY_METRICS, TAB_ITEMS } from '../data/adminPrototypeData.js'
@@ -28,6 +30,14 @@ export function AdminShell({
   categories,
   selectedIssueId,
   onSelectIssue,
+  reportQuery,
+  onReportQueryChange,
+  reportStatusFilter,
+  onReportStatusFilterChange,
+  categoryQuery,
+  onCategoryQueryChange,
+  categorySortBy,
+  onCategorySortByChange,
   onVerificationAction,
   onResolveIssue,
   onCategoryAdd,
@@ -39,14 +49,44 @@ export function AdminShell({
   onNavAction,
   onFooterAction,
   onFooterSocial,
+  onShareLink,
   profileMenuOpen,
   setProfileMenuOpen,
   onResetDemo,
   onLogout,
 }) {
+  const tablistRef = useRef(null)
+
   function selectTab(tabId) {
     setActiveTab(tabId)
     setProfileMenuOpen(false)
+  }
+
+  function handleTabKeyDown(event, tabId) {
+    const tabButtons = Array.from(tablistRef.current?.querySelectorAll('[role="tab"]') ?? [])
+    if (!tabButtons.length) return
+
+    const currentIndex = tabButtons.findIndex((button) => button.dataset.tabId === tabId)
+    if (currentIndex === -1) return
+
+    let nextIndex = currentIndex
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % tabButtons.length
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + tabButtons.length) % tabButtons.length
+    } else if (event.key === 'Home') {
+      nextIndex = 0
+    } else if (event.key === 'End') {
+      nextIndex = tabButtons.length - 1
+    } else {
+      return
+    }
+
+    event.preventDefault()
+    const nextTab = tabButtons[nextIndex]
+    nextTab?.focus()
+    nextTab?.click()
   }
 
   return (
@@ -98,6 +138,14 @@ export function AdminShell({
             >
               <MessageSquare size={16} />
               <span className="badge">3</span>
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="Copy current view link"
+              onClick={onShareLink}
+            >
+              <Link2 size={16} />
             </button>
 
             <div className="profile-shell">
@@ -157,13 +205,19 @@ export function AdminShell({
               ))}
             </section>
 
-            <section className="tab-strip" aria-label="Dashboard sections">
+            <section
+              className="tab-strip"
+              aria-label="Dashboard sections"
+              role="tablist"
+              ref={tablistRef}
+            >
               {TAB_ITEMS.map((tab) => (
                 <TabButton
                   key={tab.id}
                   tab={tab.id === 'reports' ? { ...tab, count: reportCount } : tab}
                   active={tab.id === activeTab}
                   onClick={() => selectTab(tab.id)}
+                  onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
                 />
               ))}
             </section>
@@ -181,6 +235,10 @@ export function AdminShell({
                 selectedIssue={selectedIssue}
                 selectedIssueId={selectedIssueId}
                 onSelectIssue={onSelectIssue}
+                query={reportQuery}
+                onQueryChange={onReportQueryChange}
+                statusFilter={reportStatusFilter}
+                onStatusFilterChange={onReportStatusFilterChange}
                 onResolveIssue={onResolveIssue}
                 onContact={onIssueContact}
                 onViewDetails={onIssueDetails}
@@ -193,6 +251,10 @@ export function AdminShell({
             {activeTab === 'categories' ? (
               <CategoriesPanel
                 categories={categories}
+                query={categoryQuery}
+                onQueryChange={onCategoryQueryChange}
+                sortBy={categorySortBy}
+                onSortByChange={onCategorySortByChange}
                 onAdd={onCategoryAdd}
                 onEdit={onCategoryEdit}
                 onView={onCategoryView}

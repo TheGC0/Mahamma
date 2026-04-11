@@ -112,15 +112,7 @@ export function AdminDashboard() {
     },
   ]);
 
-  const stats = {
-    totalUsers: 523,
-    pendingVerifications: 12,
-    activeJobs: 45,
-    completionRate: 94,
-    disputeRate: 2,
-  };
-
-  const pendingUsers = [
+  const [pendingUsers, setPendingUsers] = useState([
     {
       id: "1",
       name: "Mohammed Al-Salem",
@@ -129,6 +121,7 @@ export function AdminDashboard() {
       date: "2026-02-20",
       studentId: "S202112345",
       phone: "+966 50 123 4567",
+      status: "pending",
     },
     {
       id: "2",
@@ -138,6 +131,7 @@ export function AdminDashboard() {
       date: "2026-02-20",
       studentId: "S202112346",
       phone: "+966 55 234 5678",
+      status: "pending",
     },
     {
       id: "3",
@@ -147,10 +141,11 @@ export function AdminDashboard() {
       date: "2026-02-19",
       studentId: "S202112347",
       phone: "+966 56 345 6789",
+      status: "pending",
     },
-  ];
+  ]);
 
-  const reportedIssues = [
+  const [reportedIssues, setReportedIssues] = useState([
     {
       id: "1",
       type: "Dispute",
@@ -212,7 +207,18 @@ export function AdminDashboard() {
       resolution:
         "Warning issued to provider. Client refunded 50%. Provider account under review.",
     },
-  ];
+  ]);
+
+  const pendingCount = pendingUsers.filter((u) => u.status === "pending").length;
+  const openDisputeCount = reportedIssues.filter((i) => i.status !== "resolved").length;
+
+  const stats = {
+    totalUsers: 523,
+    pendingVerifications: pendingCount,
+    activeJobs: 45,
+    completionRate: 94,
+    disputeRate: 2,
+  };
 
   const selectedIssue = reportedIssues.find((i) => i.id === selectedDispute);
 
@@ -231,18 +237,25 @@ export function AdminDashboard() {
   }));
 
   const handleApproveUser = (userId) => {
-    // Mock approval
-    console.log("Approved user:", userId);
+    setPendingUsers((users) =>
+      users.map((u) => (u.id === userId ? { ...u, status: "approved" } : u)),
+    );
   };
 
   const handleRejectUser = (userId) => {
-    // Mock rejection
-    console.log("Rejected user:", userId);
+    setPendingUsers((users) =>
+      users.map((u) => (u.id === userId ? { ...u, status: "rejected" } : u)),
+    );
   };
 
   const handleResolveDispute = (disputeId, resolution) => {
-    // Mock resolution
-    console.log("Resolved dispute:", disputeId, resolution);
+    setReportedIssues((issues) =>
+      issues.map((i) =>
+        i.id === disputeId
+          ? { ...i, status: "resolved", resolution: resolution.trim() || "Case resolved and closed." }
+          : i,
+      ),
+    );
     setShowResolveDialog(false);
     setSelectedDispute(null);
     setAdminNotes("");
@@ -410,8 +423,7 @@ export function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="reports">
               <AlertTriangle className="h-4 w-4 mr-2" />
-              Reports & Disputes (
-              {reportedIssues.filter((i) => i.status !== "resolved").length})
+              Reports & Disputes ({openDisputeCount})
             </TabsTrigger>
             <TabsTrigger value="analytics">
               <BarChart3 className="h-4 w-4 mr-2" />
@@ -434,7 +446,13 @@ export function AdminDashboard() {
                   {pendingUsers.map((user) => (
                     <Card
                       key={user.id}
-                      className="border-2 hover:border-[#F7931E] transition-colors"
+                      className={`border-2 transition-colors ${
+                        user.status === "approved"
+                          ? "border-green-400 bg-green-50"
+                          : user.status === "rejected"
+                            ? "border-red-300 bg-red-50"
+                            : "hover:border-[#F7931E]"
+                      }`}
                     >
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
@@ -447,7 +465,15 @@ export function AdminDashboard() {
                                 <h3 className="font-semibold text-lg">
                                   {user.name}
                                 </h3>
-                                <Badge variant="secondary">{user.role}</Badge>
+                                <div className="flex gap-2 items-center">
+                                  <Badge variant="secondary">{user.role}</Badge>
+                                  {user.status === "approved" && (
+                                    <Badge className="bg-green-100 text-green-700">Approved</Badge>
+                                  )}
+                                  {user.status === "rejected" && (
+                                    <Badge className="bg-red-100 text-red-700">Rejected</Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
@@ -488,6 +514,8 @@ export function AdminDashboard() {
                           </div>
 
                           <div className="flex gap-2 ml-4">
+                            {user.status === "pending" ? (
+                              <>
                             <Button
                               size="sm"
                               className="bg-green-600 hover:bg-green-700"
@@ -504,6 +532,10 @@ export function AdminDashboard() {
                               <XCircle className="h-4 w-4 mr-1" />
                               Reject
                             </Button>
+                              </>
+                            ) : (
+                              <span className="text-sm text-gray-500 italic">Action taken</span>
+                            )}
                           </div>
                         </div>
                       </CardContent>

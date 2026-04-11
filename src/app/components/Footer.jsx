@@ -9,9 +9,7 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="bg-[#F7931E] rounded-lg p-2">
-                <span className="text-white text-xl font-bold">M</span>
-              </div>
+              <img src="/logo_2.png" alt="Mahamma logo" className="h-10 w-10 rounded-lg object-contain" />
               <div>
                 <h3 className="text-lg font-bold">Mahamma</h3>
                 <p className="text-sm text-gray-400">مهمّة</p>
@@ -122,25 +120,33 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-4 mt-4 md:mt-0">
             <a
-              href="#"
+              href="https://www.facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-gray-400 hover:text-[#F7931E] transition-colors"
             >
               <Facebook className="w-5 h-5" />
             </a>
             <a
-              href="#"
+              href="https://www.twitter.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-gray-400 hover:text-[#F7931E] transition-colors"
             >
               <Twitter className="w-5 h-5" />
             </a>
             <a
-              href="#"
+              href="https://www.instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-gray-400 hover:text-[#F7931E] transition-colors"
             >
               <Instagram className="w-5 h-5" />
             </a>
             <a
-              href="#"
+              href="https://www.linkedin.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-gray-400 hover:text-[#F7931E] transition-colors"
             >
               <Linkedin className="w-5 h-5" />

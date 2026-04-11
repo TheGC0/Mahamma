@@ -36,9 +36,7 @@ export function Signup() {
       <div className="container mx-auto max-w-md px-4 py-20">
         <Card>
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 bg-[#F7931E] rounded-lg p-3 w-fit">
-              <span className="text-white text-2xl font-bold">M</span>
-            </div>
+            <img src="/logo_2.png" alt="Mahamma logo" className="mx-auto mb-4 h-16 w-16 rounded-lg object-contain" />
             <CardTitle className="text-2xl">Create Account</CardTitle>
             <CardDescription>
               Join Mahamma - KFUPM's freelance platform
