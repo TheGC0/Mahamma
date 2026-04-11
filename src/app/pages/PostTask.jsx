@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
 import { Button } from "../components/ui/button";
@@ -32,6 +32,8 @@ import {
 
 export function PostTask() {
   const navigate = useNavigate();
+  const { taskId } = useParams();
+  const isEditMode = !!taskId;
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -40,6 +42,21 @@ export function PostTask() {
     budgetMax: "",
     deadline: "",
   });
+
+  useEffect(() => {
+    if (isEditMode) {
+      // Mock data fetching for the task
+      setFormData({
+        title: taskId === "t1" ? "Mobile App UI Design" : "Website SEO Optimization",
+        category: taskId === "t1" ? "Design" : "Marketing",
+        description:
+          "This is a sample description for the task that is being edited. It contains more than fifty characters to pass the validation check during the mock demonstration.",
+        budgetMin: taskId === "t1" ? "300" : "200",
+        budgetMax: taskId === "t1" ? "500" : "300",
+        deadline: new Date(Date.now() + 86400000 * 7).toISOString().split("T")[0], // 1 week from now
+      });
+    }
+  }, [isEditMode, taskId]);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -186,9 +203,13 @@ export function PostTask() {
 
       <div className="container mx-auto max-w-3xl px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Post a Task</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {isEditMode ? "Edit Task" : "Post a Task"}
+          </h1>
           <p className="text-gray-600">
-            Describe your project and receive offers from verified students
+            {isEditMode
+              ? "Update your task details and requirements"
+              : "Describe your project and receive offers from verified students"}
           </p>
         </div>
 
@@ -480,7 +501,7 @@ export function PostTask() {
                   type="submit"
                   className="flex-1 bg-[#F7931E] hover:bg-[#F7931E]/90"
                 >
-                  Post Task
+                  {isEditMode ? "Update Task" : "Post Task"}
                 </Button>
                 <Button
                   type="button"

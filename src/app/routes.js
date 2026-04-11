@@ -45,6 +45,10 @@ export const router = createBrowserRouter([
     Component: PostTask,
   },
   {
+    path: "/client/edit-task/:taskId",
+    Component: PostTask,
+  },
+  {
     path: "/client/request/:taskId",
     Component: RequestDetails,
   },

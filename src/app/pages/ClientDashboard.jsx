@@ -236,7 +236,12 @@ export function ClientDashboard() {
                     >
                       View Details
                     </Button>
-                    <Button variant="outline">Edit Request</Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate(`/client/edit-task/${request.id}`)}
+                    >
+                      Edit Request
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
