@@ -7,7 +7,12 @@ import {
   INITIAL_ISSUES,
 } from './data/adminPrototypeData.js'
 import { AdminShell } from './components/AdminShell.jsx'
-import { CategoryModal, ResolveDisputeModal, Toast } from './components/Modals.jsx'
+import {
+  CategoryModal,
+  JobDetailsModal,
+  ResolveDisputeModal,
+  Toast,
+} from './components/Modals.jsx'
 import { LoginScreen } from './components/LoginScreen.jsx'
 import {
   clearWorkspaceSnapshot,
@@ -450,6 +455,11 @@ function App() {
     setProfileMenuOpen(false)
   }
 
+  function openIssueDetailsModal() {
+    setModal({ type: 'job-details', issueId: selectedIssue.id })
+    setProfileMenuOpen(false)
+  }
+
   function handleSignUp() {
     notify('Sign up preview', 'Registration is not part of this prototype.')
   }
@@ -514,10 +524,7 @@ function App() {
             )
           }
           onIssueDetails={() =>
-            handleGlobalAction(
-              'Job details',
-              'Job detail preview opened from the dispute panel.',
-            )
+            openIssueDetailsModal()
           }
           onNavAction={(label) =>
             handleGlobalAction(
@@ -569,6 +576,10 @@ function App() {
           onClose={() => setModal(null)}
           onSave={handleCategorySave}
         />
+      ) : null}
+
+      {modal?.type === 'job-details' ? (
+        <JobDetailsModal issue={selectedIssue} onClose={() => setModal(null)} />
       ) : null}
 
       {toast ? <Toast toast={toast} onDismiss={() => setToast(null)} /> : null}

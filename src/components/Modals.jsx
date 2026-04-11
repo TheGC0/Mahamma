@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle2, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileText, Link2, Paperclip, X } from 'lucide-react'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -245,6 +245,112 @@ export function CategoryModal({ mode, category, onClose, onSave }) {
           </button>
         </div>
       </form>
+    </ModalShell>
+  )
+}
+
+export function JobDetailsModal({ issue, onClose }) {
+  async function handleCopyJobId() {
+    if (typeof window === 'undefined') return
+
+    try {
+      await window.navigator.clipboard.writeText(issue.jobId)
+    } catch {
+      window.prompt('Copy the job ID', issue.jobId)
+    }
+  }
+
+  return (
+    <ModalShell
+      title="Job Details"
+      subtitle="Review the dispute summary before taking further action"
+      wide
+      onClose={onClose}
+    >
+      <div className="meta-grid">
+        <div className="meta-card">
+          <p className="meta-label">Job ID</p>
+          <p className="meta-value">{issue.jobId}</p>
+          <span className={`pill ${issue.status === 'resolved' ? 'pill--resolved' : 'pill--pending'}`}>
+            {issue.status}
+          </span>
+        </div>
+        <div className="meta-card">
+          <p className="meta-label">Reported</p>
+          <p className="meta-value">{issue.reported}</p>
+          <span className={`pill ${issue.priority.includes('high') ? 'pill--high' : 'pill--soft'}`}>
+            {issue.priority}
+          </span>
+        </div>
+      </div>
+
+      <div className="meta-grid">
+        <div className="meta-card">
+          <p className="meta-label">Reporter</p>
+          <p className="meta-value">{issue.reporter.name}</p>
+          <span className={`pill ${issue.reporter.role === 'Client' ? 'pill--client' : 'pill--provider'}`}>
+            {issue.reporter.role}
+          </span>
+        </div>
+        <div className="meta-card">
+          <p className="meta-label">Respondent</p>
+          <p className="meta-value">{issue.respondent.name}</p>
+          <span className={`pill ${issue.respondent.role === 'Client' ? 'pill--client' : 'pill--provider'}`}>
+            {issue.respondent.role}
+          </span>
+        </div>
+      </div>
+
+      <div className="section-block">
+        <h4 className="section-title">
+          <FileText size={14} />
+          Issue Description
+        </h4>
+        <div className="field-card">
+          <p className="field-copy">{issue.description}</p>
+        </div>
+      </div>
+
+      <div className="section-block">
+        <h4 className="section-title">
+          <Paperclip size={14} />
+          Evidence Files
+        </h4>
+        <div className="evidence-list">
+          {issue.evidence.map((file) => (
+            <div key={file.name} className="evidence-row">
+              <span className="evidence-name">
+                <FileText size={16} />
+                {file.name}
+              </span>
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => window.prompt('Copy this filename', file.name)}
+              >
+                <Link2 size={14} />
+                Copy name
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {issue.resolutionNote ? (
+        <div className="success-box">
+          <strong>Resolution note</strong>
+          <p>{issue.resolutionNote}</p>
+        </div>
+      ) : null}
+
+      <div className="modal__footer">
+        <button type="button" className="btn btn--outline" onClick={handleCopyJobId}>
+          Copy Job ID
+        </button>
+        <button type="button" className="btn btn--ghost" onClick={onClose}>
+          Close
+        </button>
+      </div>
     </ModalShell>
   )
 }
