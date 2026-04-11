@@ -26,9 +26,9 @@ export function Login() {
     setError("");
 
     if (email === EXAMPLE_CLIENT.email && password === EXAMPLE_CLIENT.password) {
-      navigate("src/app/pages/ClientDashboard.jsx");
+      navigate("/client/dashboard");
     } else if (email === EXAMPLE_PROVIDER.email && password === EXAMPLE_PROVIDER.password) {
-      navigate("src/app/pages/ProviderDashboard.jsx");
+      navigate("/provider/dashboard");
     } else {
       setError("Invalid email or password.");
     }
