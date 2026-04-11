@@ -192,9 +192,11 @@ export function BrowseTasks() {
     setShowSuccess(false);
   };
 
-  const handleViewDetails = (taskId) => {
-    navigate(`/client/request/${taskId}`);
-  };
+  const TASK_DETAILS_BASE_PATH = "/client/request";
+
+const handleViewDetails = (taskId) => {
+  navigate(`${TASK_DETAILS_BASE_PATH}/${taskId}`);
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
