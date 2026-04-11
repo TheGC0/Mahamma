@@ -17,59 +17,67 @@ import {
 } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 
 export function Header({ isAuthenticated = false, userRole, userName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
-  // Simple navigation handler that works with or without router
   const handleNavigate = (path) => {
-    if (typeof window !== "undefined") {
-      window.location.href = path;
-    }
+    navigate(path);
+    setMobileMenuOpen(false);
   };
 
   const handleLogout = () => {
-    handleNavigate("/");
+    navigate("/");
   };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="container mx-auto max-w-7xl px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <a href="/" className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleNavigate("/")}
+            className="flex items-center gap-2"
+          >
             <div className="flex items-center gap-2">
-              <img src="/logo_2.png" alt="Mahamma logo" className="h-10 w-10 rounded-lg object-contain" />
+              <img
+                src="/logo_2.png"
+                alt="Mahamma logo"
+                className="h-10 w-10 rounded-lg object-contain"
+              />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Mahamma</h1>
                 <p className="text-xs text-gray-500 -mt-1">مهمّة</p>
               </div>
             </div>
-          </a>
+          </button>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <a
-              href="/services"
+            <button
+              type="button"
+              onClick={() => handleNavigate("/services")}
               className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors"
             >
               Browse Services
-            </a>
-            <a
-              href="/provider/tasks"
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavigate("/provider/tasks")}
               className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors"
             >
               Find Tasks
-            </a>
-            <a
-              href="/client/post-task"
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNavigate("/client/post-task")}
               className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors"
             >
               Post a Task
-            </a>
+            </button>
           </nav>
 
-          {/* Actions */}
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
@@ -103,6 +111,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
                       </span>
                     </Button>
                   </DropdownMenuTrigger>
+
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem
                       onClick={() =>
@@ -118,13 +127,16 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Dashboard
                     </DropdownMenuItem>
+
                     <DropdownMenuItem
                       onClick={() => handleNavigate("/messages")}
                     >
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Messages
                     </DropdownMenuItem>
+
                     <DropdownMenuSeparator />
+
                     <DropdownMenuItem onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       Logout
@@ -150,7 +162,6 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
               </>
             )}
 
-            {/* Mobile Menu Button */}
             <Button
               variant="ghost"
               size="icon"
@@ -166,48 +177,42 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <nav className="flex flex-col space-y-4">
-              <a
-                href="/services"
-                className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
+              <button
+                type="button"
+                onClick={() => handleNavigate("/services")}
+                className="text-sm text-left text-gray-700 hover:text-[#F7931E] transition-colors py-2"
               >
                 Browse Services
-              </a>
-              <a
-                href="/provider/tasks"
-                className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNavigate("/provider/tasks")}
+                className="text-sm text-left text-gray-700 hover:text-[#F7931E] transition-colors py-2"
               >
                 Find Tasks
-              </a>
-              <a
-                href="/client/post-task"
-                className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNavigate("/client/post-task")}
+                className="text-sm text-left text-gray-700 hover:text-[#F7931E] transition-colors py-2"
               >
                 Post a Task
-              </a>
+              </button>
+
               {!isAuthenticated && (
                 <>
                   <Button
                     variant="ghost"
-                    onClick={() => {
-                      handleNavigate("/login");
-                      setMobileMenuOpen(false);
-                    }}
+                    onClick={() => handleNavigate("/login")}
                     className="justify-start"
                   >
                     Login
                   </Button>
                   <Button
-                    onClick={() => {
-                      handleNavigate("/signup");
-                      setMobileMenuOpen(false);
-                    }}
+                    onClick={() => handleNavigate("/signup")}
                     className="justify-start bg-[#F7931E] hover:bg-[#F7931E]/90"
                   >
                     Sign Up
