@@ -38,6 +38,7 @@ export function ProviderProfile() {
   const navigate = useNavigate();
   const { providerId } = useParams();
   const [selectedPortfolioItem, setSelectedPortfolioItem] = useState(null);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   // Mock provider data
   const provider = {
@@ -147,6 +148,14 @@ export function ProviderProfile() {
   const reviews = mockReviews.filter((r) => r.revieweeId === providerId);
   const selectedItem = portfolio.find((p) => p.id === selectedPortfolioItem);
 
+  const handleContact = () => {
+    navigate("/messages");
+  };
+
+  const handleToggleFavorite = () => {
+    setIsFavorite((prev) => !prev);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header isAuthenticated={true} userRole="client" userName="Abdullah" />
@@ -161,9 +170,7 @@ export function ProviderProfile() {
         </Button>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Profile Card */}
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center mb-6">
@@ -172,25 +179,42 @@ export function ProviderProfile() {
                       {provider.name[0]}
                     </span>
                   </div>
+
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <h2 className="text-2xl font-bold">{provider.name}</h2>
                     {provider.verified && (
                       <CheckCircle className="h-6 w-6 text-green-600" />
                     )}
                   </div>
+
                   <div className="flex items-center justify-center mb-4">
                     <StarRating rating={provider.rating} size="md" />
                     <span className="ml-2 text-sm text-gray-600">
                       ({provider.totalReviews} reviews)
                     </span>
                   </div>
+
                   <div className="flex gap-2 justify-center">
-                    <Button className="flex-1 bg-[#F7931E] hover:bg-[#F7931E]/90">
+                    <Button
+                      className="flex-1 bg-[#F7931E] hover:bg-[#F7931E]/90"
+                      onClick={handleContact}
+                    >
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Contact
                     </Button>
-                    <Button variant="outline" size="icon">
-                      <Heart className="h-5 w-5" />
+
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleToggleFavorite}
+                    >
+                      <Heart
+                        className={`h-5 w-5 ${
+                          isFavorite
+                            ? "fill-red-500 text-red-500"
+                            : "text-gray-700"
+                        }`}
+                      />
                     </Button>
                   </div>
                 </div>
@@ -222,7 +246,6 @@ export function ProviderProfile() {
               </CardContent>
             </Card>
 
-            {/* Stats Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -248,7 +271,6 @@ export function ProviderProfile() {
               </CardContent>
             </Card>
 
-            {/* Skills Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Skills</CardTitle>
@@ -264,7 +286,6 @@ export function ProviderProfile() {
               </CardContent>
             </Card>
 
-            {/* Languages Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Languages</CardTitle>
@@ -280,7 +301,6 @@ export function ProviderProfile() {
               </CardContent>
             </Card>
 
-            {/* Education Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Education</CardTitle>
@@ -291,9 +311,7 @@ export function ProviderProfile() {
             </Card>
           </div>
 
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* About */}
             <Card>
               <CardHeader>
                 <CardTitle>About Me</CardTitle>
@@ -303,7 +321,6 @@ export function ProviderProfile() {
               </CardContent>
             </Card>
 
-            {/* Tabs */}
             <Tabs defaultValue="portfolio">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
@@ -311,7 +328,6 @@ export function ProviderProfile() {
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
               </TabsList>
 
-              {/* Portfolio Tab */}
               <TabsContent value="portfolio">
                 <Card>
                   <CardHeader>
@@ -351,7 +367,6 @@ export function ProviderProfile() {
                 </Card>
               </TabsContent>
 
-              {/* Services Tab */}
               <TabsContent value="services" className="space-y-4">
                 <div className="grid gap-4">
                   {services.map((service) => (
@@ -400,7 +415,6 @@ export function ProviderProfile() {
                 </div>
               </TabsContent>
 
-              {/* Reviews Tab */}
               <TabsContent value="reviews" className="space-y-4">
                 {reviews.map((review) => (
                   <Card key={review.id}>
@@ -439,7 +453,6 @@ export function ProviderProfile() {
         </div>
       </div>
 
-      {/* Portfolio Detail Modal */}
       {selectedItem && (
         <div
           className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50"
