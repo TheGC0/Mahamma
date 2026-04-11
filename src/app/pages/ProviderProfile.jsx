@@ -148,13 +148,15 @@ export function ProviderProfile() {
   const reviews = mockReviews.filter((r) => r.revieweeId === providerId);
   const selectedItem = portfolio.find((p) => p.id === selectedPortfolioItem);
 
-  const handleContact = () => {
-    navigate("/messages");
-  };
+  const MESSAGES_ROUTE = "/messages";
 
-  const handleToggleFavorite = () => {
-    setIsFavorite((prev) => !prev);
-  };
+const handleContact = () => {
+  navigate(MESSAGES_ROUTE);
+};
+
+const handleToggleFavorite = () => {
+  setIsFavorite((previousValue) => !previousValue);
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
