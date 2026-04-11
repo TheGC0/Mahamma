@@ -96,11 +96,17 @@ export function ProviderDashboard() {
     activeOrders: 2,
   };
 
-  const handleMarkAsDelivered = (jobId) => {
-    setActiveJobs((jobs) =>
-      jobs.map((j) => (j.id === jobId ? { ...j, status: "delivered", deadline: "Awaiting approval" } : j))
-    );
-  };
+  const DELIVERED_DEADLINE_LABEL = "Awaiting approval";
+
+const handleMarkAsDelivered = (jobId) => {
+  setActiveJobs((jobs) =>
+    jobs.map((job) =>
+      job.id === jobId
+        ? { ...job, status: "delivered", deadline: DELIVERED_DEADLINE_LABEL }
+        : job,
+    ),
+  );
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
