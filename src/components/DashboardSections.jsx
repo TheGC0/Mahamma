@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -10,7 +11,9 @@ import {
   Paperclip,
   PencilLine,
   Plus,
+  Search,
   Twitter,
+  X,
   XCircle,
 } from 'lucide-react'
 import {
@@ -151,6 +154,32 @@ export function ReportsPanel({
   onViewDetails,
   onViewEvidence,
 }) {
+  const [query, setQuery] = useState('')
+  const normalizedQuery = query.trim().toLowerCase()
+  const visibleIssues = normalizedQuery
+    ? issues.filter((issue) =>
+        [
+          issue.title,
+          issue.tag,
+          issue.priority,
+          issue.status,
+          issue.reporter.name,
+          issue.respondent.name,
+          issue.reported,
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(normalizedQuery),
+      )
+    : issues
+
+  const detailIssue = visibleIssues.length
+    ? visibleIssues.find((issue) => issue.id === selectedIssueId) ??
+      visibleIssues[0] ??
+      selectedIssue ??
+      null
+    : null
+
   return (
     <section
       className="reports-grid"
@@ -159,46 +188,83 @@ export function ReportsPanel({
       aria-labelledby="tab-reports"
     >
       <aside className="panel issue-list-panel">
-        <h3 className="panel-title">Reported Issues</h3>
-        <p className="panel-subtitle">Click to view details</p>
+        <div className="panel-head">
+          <div>
+            <h3 className="panel-title">Reported Issues</h3>
+            <p className="panel-subtitle">Click to view details</p>
+          </div>
+
+          <div className="panel-toolbar">
+            <label className="search-field" aria-label="Search reported issues">
+              <Search size={14} className="search-field__icon" aria-hidden="true" />
+              <input
+                className="input search-input"
+                type="search"
+                value={query}
+                placeholder="Search issues"
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="search-clear"
+                  aria-label="Clear issue search"
+                  onClick={() => setQuery('')}
+                >
+                  <X size={12} />
+                </button>
+              ) : null}
+            </label>
+            <span className="panel-count">
+              {visibleIssues.length} of {issues.length}
+            </span>
+          </div>
+        </div>
 
         <div className="issue-list">
-          {issues.map((issue) => (
-            <button
-              key={issue.id}
-              type="button"
-              className={`issue-card${
-                issue.id === selectedIssueId ? ' issue-card--active' : ''
-              }`}
-              onClick={() => onSelectIssue(issue.id)}
-            >
-              <div className="issue-card__head">
-                <span className={`pill ${pillClass(issue.tag)}`}>{issue.tag}</span>
-                <span className={`pill ${pillClass(issue.status)}`}>{issue.status}</span>
-              </div>
-              <p className="issue-title">{issue.title}</p>
-              <p className="issue-meta">Reported by {issue.reporter.name}</p>
-              <p className="issue-meta">{issue.reported}</p>
-            </button>
-          ))}
+          {visibleIssues.length ? (
+            visibleIssues.map((issue) => (
+              <button
+                key={issue.id}
+                type="button"
+                className={`issue-card${
+                  issue.id === detailIssue?.id ? ' issue-card--active' : ''
+                }`}
+                onClick={() => onSelectIssue(issue.id)}
+              >
+                <div className="issue-card__head">
+                  <span className={`pill ${pillClass(issue.tag)}`}>{issue.tag}</span>
+                  <span className={`pill ${pillClass(issue.status)}`}>{issue.status}</span>
+                </div>
+                <p className="issue-title">{issue.title}</p>
+                <p className="issue-meta">Reported by {issue.reporter.name}</p>
+                <p className="issue-meta">{issue.reported}</p>
+              </button>
+            ))
+          ) : (
+            <div className="no-results">
+              <Search size={28} />
+              <p>No issues match "{query.trim()}"</p>
+            </div>
+          )}
         </div>
       </aside>
 
       <article className="panel detail-panel">
-        {selectedIssue ? (
+        {detailIssue ? (
           <>
             <div className="detail-header">
               <div>
-                <h3 className="detail-title">{selectedIssue.title}</h3>
+                <h3 className="detail-title">{detailIssue.title}</h3>
                 <div className="detail-chip-row">
-                  <span className={`pill ${pillClass(selectedIssue.tag)}`}>
-                    {selectedIssue.tag}
+                  <span className={`pill ${pillClass(detailIssue.tag)}`}>
+                    {detailIssue.tag}
                   </span>
-                  <span className={`pill ${pillClass(selectedIssue.priority)}`}>
-                    {selectedIssue.priority}
+                  <span className={`pill ${pillClass(detailIssue.priority)}`}>
+                    {detailIssue.priority}
                   </span>
-                  <span className={`pill ${pillClass(selectedIssue.status)}`}>
-                    {selectedIssue.status}
+                  <span className={`pill ${pillClass(detailIssue.status)}`}>
+                    {detailIssue.status}
                   </span>
                 </div>
               </div>
@@ -207,16 +273,16 @@ export function ReportsPanel({
             <div className="meta-grid">
               <div className="meta-card">
                 <p className="meta-label">Reporter</p>
-                <p className="meta-value">{selectedIssue.reporter.name}</p>
-                <span className={`pill ${pillClass(selectedIssue.reporter.role)}`}>
-                  {selectedIssue.reporter.role}
+                <p className="meta-value">{detailIssue.reporter.name}</p>
+                <span className={`pill ${pillClass(detailIssue.reporter.role)}`}>
+                  {detailIssue.reporter.role}
                 </span>
               </div>
               <div className="meta-card">
                 <p className="meta-label">Respondent</p>
-                <p className="meta-value">{selectedIssue.respondent.name}</p>
-                <span className={`pill ${pillClass(selectedIssue.respondent.role)}`}>
-                  {selectedIssue.respondent.role}
+                <p className="meta-value">{detailIssue.respondent.name}</p>
+                <span className={`pill ${pillClass(detailIssue.respondent.role)}`}>
+                  {detailIssue.respondent.role}
                 </span>
               </div>
             </div>
@@ -227,7 +293,7 @@ export function ReportsPanel({
                 Issue Description
               </h4>
               <div className="field-card">
-                <p className="field-copy">{selectedIssue.description}</p>
+                <p className="field-copy">{detailIssue.description}</p>
               </div>
             </div>
 
@@ -237,7 +303,7 @@ export function ReportsPanel({
                 Evidence Submitted
               </h4>
               <div className="evidence-list">
-                {selectedIssue.evidence.map((file) => (
+                {detailIssue.evidence.map((file) => (
                   <div key={file.name} className="evidence-row">
                     <span className="evidence-name">
                       <FileText size={16} />
@@ -259,18 +325,18 @@ export function ReportsPanel({
             <div className="section-block">
               <h4 className="section-title">Job Information</h4>
               <div className="job-card">
-                <p className="job-card__title">Job ID: {selectedIssue.jobId}</p>
+                <p className="job-card__title">Job ID: {detailIssue.jobId}</p>
                 <div className="job-card__grid">
-                  <span>Reported: {selectedIssue.reported}</span>
-                  <span>Status: {selectedIssue.status}</span>
+                  <span>Reported: {detailIssue.reported}</span>
+                  <span>Status: {detailIssue.status}</span>
                 </div>
               </div>
             </div>
 
-            {selectedIssue.resolutionNote ? (
+            {detailIssue.resolutionNote ? (
               <div className="success-box">
                 <strong>Resolution note</strong>
-                <p>{selectedIssue.resolutionNote}</p>
+                <p>{detailIssue.resolutionNote}</p>
               </div>
             ) : null}
 
@@ -295,7 +361,11 @@ export function ReportsPanel({
         ) : (
           <div className="no-results">
             <AlertTriangle size={32} />
-            <p>Select an issue to view details</p>
+            <p>
+              {query.trim()
+                ? `No issue matches "${query.trim()}".`
+                : 'Select an issue to view details'}
+            </p>
           </div>
         )}
       </article>
@@ -371,6 +441,14 @@ export function AnalyticsPanel() {
 }
 
 export function CategoriesPanel({ categories, onAdd, onEdit, onView }) {
+  const [query, setQuery] = useState('')
+  const normalizedQuery = query.trim().toLowerCase()
+  const visibleCategories = normalizedQuery
+    ? categories.filter((category) =>
+        [category.name, String(category.jobs)].join(' ').toLowerCase().includes(normalizedQuery),
+      )
+    : categories
+
   return (
     <section
       className="panel"
@@ -378,36 +456,73 @@ export function CategoriesPanel({ categories, onAdd, onEdit, onView }) {
       id="panel-categories"
       aria-labelledby="tab-categories"
     >
-      <h3 className="panel-title">Category Management</h3>
-      <p className="panel-subtitle">Manage service and task categories</p>
+      <div className="panel-head">
+        <div>
+          <h3 className="panel-title">Category Management</h3>
+          <p className="panel-subtitle">Manage service and task categories</p>
+        </div>
+
+        <div className="panel-toolbar">
+          <label className="search-field" aria-label="Search categories">
+            <Search size={14} className="search-field__icon" aria-hidden="true" />
+            <input
+              className="input search-input"
+              type="search"
+              value={query}
+              placeholder="Search categories"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            {query ? (
+              <button
+                type="button"
+                className="search-clear"
+                aria-label="Clear category search"
+                onClick={() => setQuery('')}
+              >
+                <X size={12} />
+              </button>
+            ) : null}
+          </label>
+          <span className="panel-count">
+            {visibleCategories.length} of {categories.length}
+          </span>
+        </div>
+      </div>
 
       <div className="category-list">
-        {categories.map((category) => (
-          <div key={category.id} className="category-row">
-            <div>
-              <p className="category-row__title">{category.name}</p>
-              <p className="category-row__meta">{category.jobs} jobs in the category</p>
+        {visibleCategories.length ? (
+          visibleCategories.map((category) => (
+            <div key={category.id} className="category-row">
+              <div>
+                <p className="category-row__title">{category.name}</p>
+                <p className="category-row__meta">{category.jobs} jobs in the category</p>
+              </div>
+              <div className="category-row__actions">
+                <button
+                  type="button"
+                  className="btn btn--outline"
+                  onClick={() => onEdit(category)}
+                >
+                  <PencilLine size={14} />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--outline"
+                  onClick={() => onView(category)}
+                >
+                  <Eye size={14} />
+                  View All
+                </button>
+              </div>
             </div>
-            <div className="category-row__actions">
-              <button
-                type="button"
-                className="btn btn--outline"
-                onClick={() => onEdit(category)}
-              >
-                <PencilLine size={14} />
-                Edit
-              </button>
-              <button
-                type="button"
-                className="btn btn--outline"
-                onClick={() => onView(category)}
-              >
-                <Eye size={14} />
-                View All
-              </button>
-            </div>
+          ))
+        ) : (
+          <div className="no-results">
+            <Search size={28} />
+            <p>No categories match "{query.trim()}"</p>
           </div>
-        ))}
+        )}
       </div>
 
       <button type="button" className="btn btn--primary btn--full btn--spaced" onClick={onAdd}>
