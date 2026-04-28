@@ -170,28 +170,28 @@ export function CreateService() {
     setPortfolioImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const ALL_TOUCHED_FIELDS = {
+  title: true,
+  category: true,
+  description: true,
+  price: true,
+  deliveryTime: true,
+};
 
-    const allTouched = {
-      title: true,
-      category: true,
-      description: true,
-      price: true,
-      deliveryTime: true,
-    };
+const handleSubmit = (e) => {
+  e.preventDefault();
 
-    setTouched(allTouched);
+  setTouched(ALL_TOUCHED_FIELDS);
 
-    const newErrors = validateAllFields();
-    setErrors(newErrors);
+  const newErrors = validateAllFields();
+  setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0) {
-      return;
-    }
+  if (Object.keys(newErrors).length > 0) {
+    return;
+  }
 
-    navigate("/provider/dashboard");
-  };
+  navigate("/provider/dashboard");
+};
 
   return (
     <div className="min-h-screen bg-gray-50">

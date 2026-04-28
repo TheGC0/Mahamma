@@ -41,16 +41,18 @@ import {
 } from "lucide-react";
 import { mockTasks, categories } from "../lib/mock-data";
 
+const EMPTY_OFFER_FORM = {
+  price: "",
+  deliveryTime: "",
+  message: "",
+};
+
 export function BrowseTasks() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTaskId, setSelectedTaskId] = useState(null);
-  const [offerForm, setOfferForm] = useState({
-    price: "",
-    deliveryTime: "",
-    message: "",
-  });
+  const [offerForm, setOfferForm] = useState(EMPTY_OFFER_FORM);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
@@ -173,7 +175,7 @@ export function BrowseTasks() {
 
     setTimeout(() => {
       setShowSuccess(false);
-      setOfferForm({ price: "", deliveryTime: "", message: "" });
+      setOfferForm(EMPTY_OFFER_FORM);
       setTouched({});
       setErrors({});
       setSelectedTaskId(null);
@@ -184,15 +186,17 @@ export function BrowseTasks() {
 
   const openOfferDialog = (taskId) => {
     setSelectedTaskId(taskId);
-    setOfferForm({ price: "", deliveryTime: "", message: "" });
+    setOfferForm(EMPTY_OFFER_FORM);
     setErrors({});
     setTouched({});
     setShowSuccess(false);
   };
 
-  const handleViewDetails = (taskId) => {
-    navigate(`/client/request/${taskId}`);
-  };
+  const TASK_DETAILS_BASE_PATH = "/client/request";
+
+const handleViewDetails = (taskId) => {
+  navigate(`${TASK_DETAILS_BASE_PATH}/${taskId}`);
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
