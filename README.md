@@ -4,6 +4,31 @@ A student freelance marketplace for KFUPM students to post tasks, offer services
 
 ---
 
+## 🌐 Live Demo
+
+| | URL |
+|---|---|
+| **Frontend** | https://mahamma.vercel.app |
+| **Backend API** | https://mahamma.onrender.com/api |
+
+> ⚠️ **Important note for graders:** The backend is hosted on Render's free tier, which automatically spins down after 15 minutes of inactivity. The **first request after a period of inactivity may take 20–30 seconds** while the server wakes up. Subsequent requests will be fast. Please wait briefly on first load before concluding something is broken. This is a known limitation of the free hosting tier and does not affect functionality.
+
+---
+
+## Demo Accounts
+
+To test the platform without registering, use these pre-seeded accounts:
+
+| Role | Email | Password |
+|---|---|---|
+| Client | `client@kfupm.edu.sa` | `123456` |
+| Provider | `provider@kfupm.edu.sa` | `123456` |
+| Admin | `admin@kfupm.edu.sa` | `123456` |
+
+*(If these accounts do not exist yet, register a new account — it takes 10 seconds.)*
+
+---
+
 ## Project Description
 
 Mahamma connects KFUPM students as both clients and freelancers. Clients can post tasks, receive offers, compare them side-by-side, and track active jobs. Freelancers can list services, browse open tasks, submit proposals, and manage their earnings. Administrators can verify new users, moderate reported disputes, view analytics, and manage service categories.
