@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(Remove-Item \"e:\\\\Downloads2\\\\Study\\\\252\\\\SWE363\\\\Mahamma-1\\\\backend\\\\models\\\\Skill.js\")"
     ]
   }
 }
