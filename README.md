@@ -21,11 +21,9 @@ To test the platform without registering, use these pre-seeded accounts:
 
 | Role | Email | Password |
 |---|---|---|
-| Client | `client@kfupm.edu.sa` | `123456` |
-| Provider | `provider@kfupm.edu.sa` | `123456` |
-| Admin | `admin@kfupm.edu.sa` | `123456` |
-
-*(If these accounts do not exist yet, register a new account — it takes 10 seconds.)*
+| Client | `client@kfupm.edu.sa` | `client123` |
+| Provider | `provider@kfupm.edu.sa` | `provider123` |
+| Admin | `admin@kfupm.edu.sa` | `admin123` |
 
 ---
 
@@ -85,7 +83,8 @@ Mahamma-1/
 │   │   ├── serviceController.js
 │   │   ├── proposalController.js
 │   │   ├── contractController.js
-│   │   └── reviewController.js
+│   │   ├── reviewController.js
+│   │   └── adminController.js
 │   ├── middleware/
 │   │   ├── authMiddleware.js   # JWT token verification
 │   │   ├── roleMiddleware.js   # Role-based access control
@@ -97,14 +96,16 @@ Mahamma-1/
 │   │   ├── Service.js
 │   │   ├── Proposal.js
 │   │   ├── Contract.js
-│   │   └── Review.js
+│   │   ├── Review.js
+│   │   └── Report.js
 │   ├── routes/                 # Express route definitions
 │   │   ├── authRoutes.js
 │   │   ├── taskRoutes.js
 │   │   ├── serviceRoutes.js
 │   │   ├── proposalRoutes.js
 │   │   ├── contractRoutes.js
-│   │   └── reviewRoutes.js
+│   │   ├── reviewRoutes.js
+│   │   └── adminRoutes.js
 │   ├── utils/
 │   │   └── generateToken.js    # JWT generation helper
 │   ├── server.js               # App entry point
@@ -173,6 +174,8 @@ PORT=5000
 MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
 MONGO_DB_NAME=mahamma
 JWT_SECRET=your_strong_secret_key_here
+ALLOWED_ORIGINS=http://localhost:5173,https://mahamma.vercel.app
+NODE_ENV=development
 ```
 
 | Variable | Description |
@@ -181,6 +184,8 @@ JWT_SECRET=your_strong_secret_key_here
 | `MONGO_URI` | Full MongoDB Atlas connection string |
 | `MONGO_DB_NAME` | Database name inside the cluster |
 | `JWT_SECRET` | Secret key used to sign JWT tokens |
+| `ALLOWED_ORIGINS` | Comma-separated list of frontend origins allowed by CORS |
+| `NODE_ENV` | Runtime environment, usually `development` locally and `production` on Render |
 
 ### 2. Install and run
 
@@ -196,18 +201,6 @@ npm run dev
 ```
 
 The API will be available at `http://localhost:5000`.
-
----
-
-## Demo Accounts
-
-Use the following credentials on the **Login** page (`/login`):
-
-| Role | Email | Password | Redirects To |
-|---|---|---|---|
-| Client | `client@kfupm.edu.sa` | `client123` | `/client/dashboard` |
-| Freelancer | `provider@kfupm.edu.sa` | `provider123` | `/provider/dashboard` |
-| Admin | `admin@kfupm.edu.sa` | `admin123` | `/admin` |
 
 ---
 
@@ -764,6 +757,111 @@ Delete a review.
 Get all reviews received by a provider from completed contracts. Public endpoint.
 
 **Success response (200):** Array of review objects with reviewer and contract references.
+
+---
+
+### 7. Admin — `/api/admin`
+
+Admin routes are protected and require an authenticated user with `Role: "admin"`.
+
+#### GET `/api/admin/users` 🔒 *(admin role required)*
+Get registered users. Supports optional filtering.
+
+| Query Param | Type | Example | Description |
+|---|---|---|---|
+| verified | String | `pending` | Filter by `pending`, `approved`, or `rejected` |
+| role | String | `provider` | Filter by `client`, `provider`, or `admin` |
+| search | String | `Ali` | Search users by name |
+
+**Success response (200):**
+```json
+[
+  {
+    "_id": "664f...",
+    "Name": "Demo Provider",
+    "Email": "provider@kfupm.edu.sa",
+    "Role": "provider",
+    "Major": "Software Engineering",
+    "Rating": 4.8,
+    "Verified": "approved",
+    "createdAt": "2026-05-02T12:00:00.000Z"
+  }
+]
+```
+
+---
+
+#### PUT `/api/admin/users/:id/verify` 🔒 *(admin role required)*
+Approve, reject, or reset a user's verification status.
+
+**Request body:**
+```json
+{
+  "Verified": "approved"
+}
+```
+
+**Success response (200):** Updated user object without the password field.
+
+**Error responses:** `400` Invalid verification status | `403` Not an admin | `404` User not found
+
+---
+
+#### GET `/api/admin/reports` 🔒 *(admin role required)*
+Get all submitted reports/disputes.
+
+**Success response (200):**
+```json
+[
+  {
+    "_id": "664f...",
+    "ReporterID": { "Name": "Ali", "Email": "ali@kfupm.edu.sa", "Role": "client" },
+    "RespondentID": { "Name": "Provider", "Email": "provider@kfupm.edu.sa", "Role": "provider" },
+    "Type": "dispute",
+    "Description": "The delivered work does not match the agreed requirements.",
+    "Severity": "medium",
+    "Status": "pending",
+    "createdAt": "2026-05-02T12:00:00.000Z"
+  }
+]
+```
+
+---
+
+#### POST `/api/admin/reports` 🔒
+Create a report/dispute. Any authenticated user can submit a report.
+
+**Request body:**
+```json
+{
+  "RespondentID": "664f1a2b3c4d5e6f7a8b9c0d",
+  "ContractID": "664f1a2b3c4d5e6f7a8b9c0e",
+  "Type": "dispute",
+  "Description": "The delivered work does not match the agreed requirements.",
+  "Severity": "medium"
+}
+```
+
+**Success response (201):** Created report object.
+
+**Error responses:** `400` Missing type or description | `401` Missing token
+
+---
+
+#### PUT `/api/admin/reports/:id/status` 🔒 *(admin role required)*
+Update the status of a report and optionally add resolution notes.
+
+**Request body:**
+```json
+{
+  "Status": "resolved",
+  "Resolution": "Refund approved after reviewing the contract evidence."
+}
+```
+
+**Success response (200):** Updated report object.
+
+**Error responses:** `400` Invalid status | `403` Not an admin | `404` Report not found
 
 ---
 
