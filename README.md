@@ -586,7 +586,8 @@ Update a service order status.
 | Status | Who can set it | Meaning |
 |---|---|---|
 | active | Provider | Provider accepted the order |
-| completed | Client | Client marked the order complete |
+| delivered | Provider | Provider delivered the service for client review |
+| completed | Client | Client approved the delivered order |
 | cancelled | Client, provider, admin | Order was cancelled |
 
 **Success response (200):** Updated service order object.

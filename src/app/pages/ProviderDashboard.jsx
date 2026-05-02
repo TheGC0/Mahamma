@@ -92,13 +92,17 @@ export function ProviderDashboard() {
     }
   };
 
-  const completedJobs = activeJobs.filter((j) => j.Status === "completed").length;
+  const completedServiceOrders = serviceOrders.filter((order) => order.Status === "completed").length;
+  const completedJobs = activeJobs.filter((j) => j.Status === "completed").length + completedServiceOrders;
   const totalEarnings = activeJobs
     .filter((j) => j.Status === "completed")
-    .reduce((sum, j) => sum + (j.AgreedAmount || 0), 0);
+    .reduce((sum, j) => sum + (j.AgreedAmount || 0), 0) +
+    serviceOrders
+      .filter((order) => order.Status === "completed")
+      .reduce((sum, order) => sum + (order.Price || 0), 0);
   const activeOrders =
     activeJobs.filter((j) => j.Status === "active" || j.Status === "in_progress" || j.Status === "delivered").length +
-    serviceOrders.filter((order) => order.Status === "pending" || order.Status === "active").length;
+    serviceOrders.filter((order) => order.Status === "pending" || order.Status === "active" || order.Status === "delivered").length;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -279,6 +283,12 @@ export function ProviderDashboard() {
                       </div>
 
                       <div className="flex gap-2 flex-wrap">
+                        {order.ServiceID?._id && (
+                          <Button variant="outline" onClick={() => navigate(`/services/${order.ServiceID._id}`)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Service
+                          </Button>
+                        )}
                         {order.Status === "pending" && (
                           <Button
                             className="bg-[#F7931E] hover:bg-[#F7931E]/90"
@@ -300,6 +310,19 @@ export function ProviderDashboard() {
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Message Client
                         </Button>
+                        {order.Status === "active" && (
+                          <Button
+                            className="bg-[#F7931E] hover:bg-[#F7931E]/90"
+                            onClick={() => handleServiceOrderStatus(order._id, "delivered")}
+                          >
+                            Mark as Delivered
+                          </Button>
+                        )}
+                        {order.Status === "delivered" && (
+                          <Button variant="outline" disabled>
+                            Awaiting Client Approval
+                          </Button>
+                        )}
                         {(order.Status === "pending" || order.Status === "active") && (
                           <Button
                             variant="outline"

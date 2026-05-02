@@ -65,12 +65,23 @@ export function ClientDashboard() {
 
   const activeRequestsCount = myRequests.filter((r) => r.Status === "open").length;
   const ongoingJobsCount =
-    activeJobs.filter((j) => j.Status === "in_progress" || j.Status === "delivered").length +
-    serviceOrders.filter((order) => order.Status === "pending" || order.Status === "active").length;
+    activeJobs.filter((j) => j.Status === "active" || j.Status === "in_progress" || j.Status === "delivered").length +
+    serviceOrders.filter((order) => order.Status === "pending" || order.Status === "active" || order.Status === "delivered").length;
 
   const handleCompleteServiceOrder = async (orderId) => {
     try {
       const updated = await updateServiceOrderStatus(orderId, "completed");
+      setServiceOrders((orders) =>
+        orders.map((order) => (order._id === orderId ? updated : order)),
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCancelServiceOrder = async (orderId) => {
+    try {
+      const updated = await updateServiceOrderStatus(orderId, "cancelled");
       setServiceOrders((orders) =>
         orders.map((order) => (order._id === orderId ? updated : order)),
       );
@@ -258,7 +269,20 @@ export function ClientDashboard() {
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Message
                         </Button>
+                        {order.Status === "pending" && (
+                          <Button
+                            variant="outline"
+                            onClick={() => handleCancelServiceOrder(order._id)}
+                          >
+                            Cancel Order
+                          </Button>
+                        )}
                         {order.Status === "active" && (
+                          <Button variant="outline" disabled>
+                            Waiting for Delivery
+                          </Button>
+                        )}
+                        {order.Status === "delivered" && (
                           <Button
                             className="bg-[#F7931E] hover:bg-[#F7931E]/90"
                             onClick={() => handleCompleteServiceOrder(order._id)}

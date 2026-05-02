@@ -35,7 +35,7 @@ const serviceOrderSchema = new mongoose.Schema(
     Status: {
       type: String,
       required: true,
-      enum: ["pending", "active", "completed", "cancelled"],
+      enum: ["pending", "active", "delivered", "completed", "cancelled"],
       default: "pending",
     },
   },

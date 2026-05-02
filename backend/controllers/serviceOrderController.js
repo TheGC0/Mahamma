@@ -98,9 +98,9 @@ export const updateServiceOrderStatus = async (req, res, next) => {
   try {
     const { Status } = req.body;
 
-    if (!["active", "completed", "cancelled"].includes(Status)) {
+    if (!["active", "delivered", "completed", "cancelled"].includes(Status)) {
       res.status(400);
-      throw new Error("Status must be active, completed, or cancelled");
+      throw new Error("Status must be active, delivered, completed, or cancelled");
     }
 
     const order = await ServiceOrder.findById(req.params.id).populate(
@@ -126,9 +126,34 @@ export const updateServiceOrderStatus = async (req, res, next) => {
       throw new Error("Only the provider can accept a service order");
     }
 
+    if (Status === "delivered" && !isProvider && req.user.Role !== "admin") {
+      res.status(403);
+      throw new Error("Only the provider can mark a service order as delivered");
+    }
+
     if (Status === "completed" && !isClient && req.user.Role !== "admin") {
       res.status(403);
       throw new Error("Only the client can complete a service order");
+    }
+
+    if (["completed", "cancelled"].includes(order.Status)) {
+      res.status(400);
+      throw new Error("Completed or cancelled service orders cannot be updated");
+    }
+
+    if (Status === "active" && order.Status !== "pending") {
+      res.status(400);
+      throw new Error("Only pending service orders can be accepted");
+    }
+
+    if (Status === "delivered" && order.Status !== "active") {
+      res.status(400);
+      throw new Error("Only active service orders can be marked as delivered");
+    }
+
+    if (Status === "completed" && order.Status !== "delivered") {
+      res.status(400);
+      throw new Error("Only delivered service orders can be completed");
     }
 
     order.Status = Status;
@@ -138,6 +163,7 @@ export const updateServiceOrderStatus = async (req, res, next) => {
     const notifyUserId = isProvider ? order.ClientID : order.ProviderID;
     const titleByStatus = {
       active: "Service order accepted",
+      delivered: "Service order delivered",
       completed: "Service order completed",
       cancelled: "Service order cancelled",
     };
