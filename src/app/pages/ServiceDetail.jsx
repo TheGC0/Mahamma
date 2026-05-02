@@ -37,13 +37,14 @@ import {
   createServiceOrder,
   getServiceById,
   getServiceReviews,
+  getStoredUserInfo,
 } from "../../lib/api";
 import { toast } from "sonner";
 
 export function ServiceDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+  const userInfo = getStoredUserInfo();
 
   const [service, setService] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -60,6 +61,7 @@ export function ServiceDetail() {
   const [error, setError] = useState("");
   const providerId = service?.ProviderID?._id || "";
   const currentUserId = userInfo?._id || userInfo?.id || "";
+  const currentRole = (userInfo?.Role || userInfo?.role || "").toLowerCase();
   const isOwner = Boolean(providerId && currentUserId && String(providerId) === String(currentUserId));
 
   useEffect(() => {
@@ -83,7 +85,7 @@ export function ServiceDetail() {
 
   const handleOrder = async () => {
     if (!userInfo) { navigate("/login"); return; }
-    if (userInfo.Role !== "client") {
+    if ((userInfo.Role || "").toLowerCase() !== "client") {
       toast.error("Only client accounts can order services.");
       return;
     }
@@ -315,7 +317,7 @@ export function ServiceDetail() {
                   {isOwner ? (
                     <>
                       <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
-                        This is your service listing. Clients see ordering options here.
+                        This is your service listing. Manage it from your provider dashboard.
                       </div>
                       <Button
                         className="w-full h-12 text-lg bg-[#F7931E] hover:bg-[#F7931E]/90"
@@ -339,6 +341,26 @@ export function ServiceDetail() {
                         Share Service
                       </Button>
                     </>
+                  ) : currentRole === "provider" || currentRole === "freelancer" ? (
+                    <>
+                      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                        Provider accounts can preview services, but only client accounts can place orders.
+                      </div>
+                      <Button
+                        className="w-full h-12 text-lg bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={() => navigate("/provider/dashboard")}
+                      >
+                        Back to Dashboard
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full h-12"
+                        onClick={handleShare}
+                      >
+                        <Share2 className="h-5 w-5 mr-2" />
+                        Share Service
+                      </Button>
+                    </>
                   ) : (
                     <>
                       <Button
@@ -352,7 +374,7 @@ export function ServiceDetail() {
                         variant="outline"
                         className="w-full h-12"
                         onClick={() =>
-                          userInfo
+                          userInfo && !isOwner
                             ? navigate(
                                 service.ProviderID?._id
                                   ? `/messages?user=${service.ProviderID._id}`
@@ -415,7 +437,7 @@ export function ServiceDetail() {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
-              {!isOwner && (
+              {!isOwner && currentRole !== "provider" && currentRole !== "freelancer" && (
                 <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
                   <DialogTrigger asChild>
                     <Button

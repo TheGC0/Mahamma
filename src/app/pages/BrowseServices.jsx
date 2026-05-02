@@ -28,6 +28,9 @@ import { categories } from "../lib/categories";
 export function BrowseServices() {
   const navigate = useNavigate();
   const userInfo = getStoredUserInfo();
+  const currentUserId = userInfo?._id || userInfo?.id || "";
+  const currentRole = (userInfo?.Role || userInfo?.role || "").toLowerCase();
+  const isProviderUser = currentRole === "provider" || currentRole === "freelancer";
 
   const [services, setServices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,9 +76,20 @@ export function BrowseServices() {
     }
   };
 
-  const filteredServices = services.filter(
-    (s) => s.ProviderID && s.ProviderID.Rating >= parseFloat(minRating)
-  );
+  const filteredServices = services.filter((service) => {
+    const providerId = service.ProviderID?._id || service.ProviderID || "";
+    const isOwnService =
+      isProviderUser &&
+      currentUserId &&
+      providerId &&
+      String(providerId) === String(currentUserId);
+
+    return (
+      !isOwnService &&
+      service.ProviderID &&
+      service.ProviderID.Rating >= parseFloat(minRating)
+    );
+  });
 
   const handleClearFilters = () => {
     setSelectedCategory("all");
