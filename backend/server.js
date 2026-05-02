@@ -11,6 +11,7 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import { standaloneRouter as proposalStandaloneRouter } from "./routes/proposalRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 dotenv.config();
 
@@ -47,6 +48,7 @@ app.use("/api/proposals", proposalStandaloneRouter);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Mahamma API is running", version: "1.0.0" });

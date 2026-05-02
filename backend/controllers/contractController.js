@@ -1,6 +1,7 @@
 import Contract from "../models/Contract.js";
 import Proposal from "../models/Proposal.js";
 import Task from "../models/Task.js";
+import { createNotification } from "../utils/createNotification.js";
 
 // @desc    Get all contracts for the logged-in user
 // @route   GET /api/contracts
@@ -117,6 +118,18 @@ export const createContract = async (req, res, next) => {
       .populate("ProviderID", "Name Email")
       .populate("ProposalID", "BidAmount EstimatedTime");
 
+    await createNotification({
+      userId: contract.ProviderID,
+      type: "contract",
+      title: "New contract started",
+      description: `A contract for "${populated.TaskID.Title}" has started.`,
+      actionUrl: `/client/jobs/${contract._id}`,
+      metadata: {
+        contractId: contract._id,
+        taskId: contract.TaskID,
+      },
+    });
+
     res.status(201).json(populated);
   } catch (error) {
     next(error);
@@ -164,6 +177,27 @@ export const updateContractStatus = async (req, res, next) => {
     } else if (Status === "cancelled") {
       await Task.findByIdAndUpdate(contract.TaskID, { Status: "cancelled" });
     }
+
+    const otherUserId =
+      contract.ClientID.toString() === req.user._id.toString()
+        ? contract.ProviderID
+        : contract.ClientID;
+
+    await createNotification({
+      userId: otherUserId,
+      type: "contract",
+      title:
+        Status === "completed" ? "Contract completed" : "Contract cancelled",
+      description:
+        Status === "completed"
+          ? "A contract you are part of was marked completed."
+          : "A contract you are part of was cancelled.",
+      actionUrl: `/client/jobs/${contract._id}`,
+      metadata: {
+        contractId: contract._id,
+        status: Status,
+      },
+    });
 
     res.json(updated);
   } catch (error) {

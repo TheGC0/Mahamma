@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import { createNotification } from "../utils/createNotification.js";
 
 const userFields = "Name Email Role Major Rating";
 
@@ -189,6 +190,24 @@ export const sendMessage = async (req, res, next) => {
     conversation.LastMessage = message.Body;
     conversation.LastMessageAt = message.createdAt;
     await conversation.save();
+
+    await Promise.all(
+      conversation.Participants.filter(
+        (participantId) => participantId.toString() !== req.user._id.toString()
+      ).map((participantId) =>
+        createNotification({
+          userId: participantId,
+          type: "message",
+          title: `New message from ${req.user.Name}`,
+          description: message.Body,
+          actionUrl: `/messages?conversation=${conversationId}`,
+          metadata: {
+            conversationId,
+            senderId: req.user._id,
+          },
+        })
+      )
+    );
 
     const populated = await Message.findById(message._id).populate(
       "SenderID",

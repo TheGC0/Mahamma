@@ -840,7 +840,62 @@ Send a message in an existing conversation.
 
 ---
 
-### 8. Admin — `/api/admin`
+### 8. Notifications — `/api/notifications`
+
+Notification routes are protected. Users only receive and update their own notifications.
+
+#### GET `/api/notifications` 🔒
+Get recent notifications for the logged-in user.
+
+**Success response (200):**
+```json
+{
+  "unreadCount": 2,
+  "notifications": [
+    {
+      "_id": "6650...",
+      "UserID": "664f...",
+      "Type": "message",
+      "Title": "New message from Demo Client",
+      "Description": "Can we discuss this task?",
+      "ActionUrl": "/messages?conversation=6650...",
+      "Read": false,
+      "createdAt": "2026-05-02T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+#### PATCH `/api/notifications/:id/read` 🔒
+Mark one notification as read.
+
+**Success response (200):** Updated notification object.
+
+---
+
+#### PATCH `/api/notifications/read-all` 🔒
+Mark all notifications as read for the logged-in user.
+
+**Success response (200):**
+```json
+{ "message": "Notifications marked as read" }
+```
+
+---
+
+#### DELETE `/api/notifications` 🔒
+Clear all notifications for the logged-in user.
+
+**Success response (200):**
+```json
+{ "message": "Notifications cleared" }
+```
+
+---
+
+### 9. Admin — `/api/admin`
 
 Admin routes are protected and require an authenticated user with `Role: "admin"`.
 

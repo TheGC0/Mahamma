@@ -1,6 +1,5 @@
 import { Button } from "./ui/button";
 import {
-  Bell,
   MessageSquare,
   User,
   LogOut,
@@ -16,13 +15,41 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { useNavigate } from "react-router";
+import { getConversations } from "../../lib/api";
 
 export function Header({ isAuthenticated = false, userRole, userName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadMessages(0);
+      return undefined;
+    }
+
+    const loadUnreadMessages = async () => {
+      try {
+        const conversations = await getConversations();
+        setUnreadMessages(
+          conversations.reduce(
+            (total, conversation) =>
+              total + Number(conversation.UnreadCount || 0),
+            0,
+          ),
+        );
+      } catch {
+        setUnreadMessages(0);
+      }
+    };
+
+    loadUnreadMessages();
+    const intervalId = window.setInterval(loadUnreadMessages, 30000);
+    return () => window.clearInterval(intervalId);
+  }, [isAuthenticated]);
 
   const handleNavigate = (path) => {
     navigate(path);
@@ -91,9 +118,11 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
                   onClick={() => handleNavigate("/messages")}
                 >
                   <MessageSquare className="h-5 w-5" />
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[#F7931E] p-0 flex items-center justify-center text-xs">
-                    3
-                  </Badge>
+                  {unreadMessages > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full bg-[#F7931E] p-0 px-1 flex items-center justify-center text-xs">
+                      {unreadMessages > 9 ? "9+" : unreadMessages}
+                    </Badge>
+                  )}
                 </Button>
 
                 <DropdownMenu>

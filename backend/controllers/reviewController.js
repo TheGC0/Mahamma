@@ -2,6 +2,7 @@ import Review from "../models/Review.js";
 import Contract from "../models/Contract.js";
 import Service from "../models/Service.js";
 import User from "../models/User.js";
+import { createNotification } from "../utils/createNotification.js";
 
 // @desc    Get all reviews for a service
 // @route   GET /api/services/:serviceId/reviews
@@ -158,6 +159,23 @@ export const createReview = async (req, res, next) => {
     }
 
     const populated = await review.populate("ReviewerID", "Name");
+
+    await createNotification({
+      userId: reviewedUserId,
+      type: "review",
+      title: "New review received",
+      description: `${req.user.Name} left you a ${Score}-star review.`,
+      actionUrl:
+        contract.ProviderID.toString() === reviewedUserId.toString()
+          ? `/providers/${reviewedUserId}`
+          : "/client/dashboard",
+      metadata: {
+        contractId: contract._id,
+        reviewId: review._id,
+        score: Score,
+      },
+    });
+
     res.status(201).json(populated);
   } catch (error) {
     next(error);

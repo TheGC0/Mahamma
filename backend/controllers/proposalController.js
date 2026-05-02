@@ -1,5 +1,6 @@
 import Proposal from "../models/Proposal.js";
 import Task from "../models/Task.js";
+import { createNotification } from "../utils/createNotification.js";
 
 // @desc    Get all proposals for a task
 // @route   GET /api/tasks/:taskId/proposals
@@ -107,6 +108,19 @@ export const createProposal = async (req, res, next) => {
       "Name Email Rating"
     );
 
+    await createNotification({
+      userId: task.ClientID,
+      type: "proposal",
+      title: "New offer received",
+      description: `${req.user.Name} submitted an offer of ${BidAmount} SAR on "${task.Title}".`,
+      actionUrl: `/client/request/${task._id}`,
+      metadata: {
+        taskId: task._id,
+        proposalId: proposal._id,
+        freelancerId: req.user._id,
+      },
+    });
+
     res.status(201).json(populated);
   } catch (error) {
     next(error);
@@ -127,7 +141,7 @@ export const updateProposalStatus = async (req, res, next) => {
 
     const proposal = await Proposal.findById(req.params.id).populate(
       "TaskID",
-      "ClientID Status"
+      "ClientID Status Title"
     );
 
     if (!proposal) {
@@ -153,6 +167,23 @@ export const updateProposalStatus = async (req, res, next) => {
         Status: "in_progress",
       });
     }
+
+    await createNotification({
+      userId: proposal.FreelancerID,
+      type: "proposal",
+      title: Status === "accepted" ? "Offer accepted" : "Offer rejected",
+      description:
+        Status === "accepted"
+          ? `Your offer for "${proposal.TaskID.Title}" was accepted.`
+          : `Your offer for "${proposal.TaskID.Title}" was rejected.`,
+      actionUrl:
+        Status === "accepted" ? "/provider/dashboard" : "/provider/tasks",
+      metadata: {
+        taskId: proposal.TaskID._id,
+        proposalId: proposal._id,
+        status: Status,
+      },
+    });
 
     res.json(updated);
   } catch (error) {

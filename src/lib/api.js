@@ -322,3 +322,36 @@ export const sendConversationMessage = async (conversationId, Body) => {
   );
   return handleResponse(res);
 };
+
+// ─── NOTIFICATIONS ──────────────────────────────────────────────────────────
+
+export const getNotifications = async () => {
+  const res = await fetch(`${API_URL}/notifications`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(res);
+};
+
+export const markNotificationRead = async (id) => {
+  const res = await fetch(`${API_URL}/notifications/${id}/read`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(res);
+};
+
+export const markAllNotificationsRead = async () => {
+  const res = await fetch(`${API_URL}/notifications/read-all`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(res);
+};
+
+export const clearNotifications = async () => {
+  const res = await fetch(`${API_URL}/notifications`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(res);
+};
