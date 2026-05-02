@@ -59,8 +59,8 @@ export const validateService = (req, res, next) => {
 
   if (!Title || Title.trim().length < 5)
     errors.push("Title must be at least 5 characters");
-  if (!Description || Description.trim().length < 20)
-    errors.push("Description must be at least 20 characters");
+  if (!Description || !Description.trim())
+    errors.push("Description is required");
   if (!Price || isNaN(Price) || Number(Price) < 1)
     errors.push("Price must be a positive number");
   const validCategories = ["Design","Programming","Video Editing","Device Fixing","Content Writing","Translation","Marketing","Photography","Tutoring","Other"];

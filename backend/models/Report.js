@@ -10,7 +10,7 @@ const reportSchema = new mongoose.Schema(
       enum: ["Dispute", "Quality Issue", "Payment Issue", "Misconduct", "Other"],
       required: true,
     },
-    Description: { type: String, required: true, minlength: 20 },
+    Description: { type: String, required: true },
     Severity: { type: String, enum: ["low", "medium", "high"], default: "medium" },
     Status: {
       type: String,

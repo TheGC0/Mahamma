@@ -18,7 +18,6 @@ const serviceSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      minlength: 20,
     },
     Price: {
       type: Number,

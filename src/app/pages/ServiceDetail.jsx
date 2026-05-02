@@ -133,13 +133,13 @@ export function ServiceDetail() {
     const otherType = serviceReportForm.OtherType.trim();
     const issueTypeLabel = serviceReportForm.Type === "Other" ? `Other - ${otherType}` : serviceReportForm.Type;
 
-    if (serviceReportForm.Type === "Other" && otherType.length < 3) {
+    if (serviceReportForm.Type === "Other" && !otherType) {
       toast.error("Please write the other issue type.");
       return;
     }
 
-    if (description.length < 20) {
-      toast.error("Please describe the issue in at least 20 characters.");
+    if (!description) {
+      toast.error("Please describe what happened.");
       return;
     }
 
@@ -506,11 +506,7 @@ export function ServiceDetail() {
                       <Button
                         className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
                         onClick={handleReportService}
-                        disabled={
-                          serviceReportForm.Description.trim().length < 20 ||
-                          (serviceReportForm.Type === "Other" && serviceReportForm.OtherType.trim().length < 3) ||
-                          isReporting
-                        }
+                        disabled={isReporting}
                       >
                         {isReporting ? "Sending..." : "Submit Report"}
                       </Button>

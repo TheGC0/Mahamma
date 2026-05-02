@@ -100,7 +100,6 @@ export function CreateService() {
         break;
       case "description":
         if (!value.trim()) newErrors.description = "Description is required";
-        else if (value.length < 20) newErrors.description = "Description must be at least 20 characters";
         else delete newErrors.description;
         break;
       case "price":
@@ -277,7 +276,7 @@ export function CreateService() {
                       <AlertCircle className="h-4 w-4" /><span>{errors.description}</span>
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500">Minimum 20 characters</p>
+                    <p className="text-xs text-gray-500">Describe what clients will receive</p>
                   )}
                   <span className="text-xs text-gray-500">{formData.description.length}</span>
                 </div>
