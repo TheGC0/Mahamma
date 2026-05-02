@@ -269,7 +269,8 @@ export function JobWorkspace() {
         Severity: "low",
         Description: `Support requested from workspace "${taskTitle}" by ${userInfo?.Name || "a user"}. The user needs help with this job workspace.`,
       });
-      toast.success("Support request sent.");
+      toast.success("Support request sent. Opening support page.");
+      navigate("/support/contact");
     } catch (err) {
       toast.error(err.message || "Failed to contact support.");
     } finally {
