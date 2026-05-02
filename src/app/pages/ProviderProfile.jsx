@@ -191,7 +191,11 @@ export function ProviderProfile() {
                   <div className="flex justify-center gap-2">
                     <Button
                       className="flex-1 bg-[#F7931E] hover:bg-[#F7931E]/90"
-                      onClick={() => navigate("/messages")}
+                      onClick={() =>
+                        userInfo
+                          ? navigate(`/messages?user=${providerId}`)
+                          : navigate("/login")
+                      }
                     >
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Contact

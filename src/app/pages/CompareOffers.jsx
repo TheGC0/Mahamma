@@ -245,7 +245,17 @@ export function CompareOffers() {
                                 <CheckCircle className="h-4 w-4 mr-2" />
                                 {offer.Status === "pending" ? "Accept Offer" : offer.Status}
                               </Button>
-                              <Button variant="outline" className="w-full" onClick={() => navigate("/messages")}>
+                              <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() =>
+                                  navigate(
+                                    offer.FreelancerID?._id
+                                      ? `/messages?user=${offer.FreelancerID._id}`
+                                      : "/messages",
+                                  )
+                                }
+                              >
                                 <MessageSquare className="h-4 w-4 mr-2" />
                                 Message
                               </Button>

@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router";
 import { Header } from "../components/Header";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { EmailInput } from "../components/EmailInput";
 import { Label } from "../components/ui/label";
 import {
   Card,
@@ -11,12 +12,14 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { Eye, EyeOff } from "lucide-react";
 import { login } from "../../lib/api";
 
 export function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -66,9 +69,8 @@ export function Login() {
               )}
               <div className="space-y-2">
                 <Label htmlFor="email">KFUPM Email</Label>
-                <Input
+                <EmailInput
                   id="email"
-                  type="email"
                   placeholder="s202012345@kfupm.edu.sa"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -77,13 +79,29 @@ export function Login() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-11"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-gray-500 hover:text-gray-800"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
               <Button
                 type="submit"

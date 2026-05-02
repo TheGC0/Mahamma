@@ -284,3 +284,41 @@ export const deleteReview = async (id) => {
   });
   return handleResponse(res);
 };
+
+// ─── MESSAGES ────────────────────────────────────────────────────────────────
+
+export const getConversations = async () => {
+  const res = await fetch(`${API_URL}/messages/conversations`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(res);
+};
+
+export const createConversation = async (ParticipantID) => {
+  const res = await fetch(`${API_URL}/messages/conversations`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ ParticipantID }),
+  });
+  return handleResponse(res);
+};
+
+export const getConversationMessages = async (conversationId) => {
+  const res = await fetch(
+    `${API_URL}/messages/conversations/${conversationId}/messages`,
+    { headers: getAuthHeaders() },
+  );
+  return handleResponse(res);
+};
+
+export const sendConversationMessage = async (conversationId, Body) => {
+  const res = await fetch(
+    `${API_URL}/messages/conversations/${conversationId}/messages`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ Body }),
+    },
+  );
+  return handleResponse(res);
+};

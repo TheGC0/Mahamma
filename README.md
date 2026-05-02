@@ -760,7 +760,87 @@ Get all reviews received by a provider from completed contracts. Public endpoint
 
 ---
 
-### 7. Admin — `/api/admin`
+### 7. Messages — `/api/messages`
+
+Message routes are protected. A user can only view or send messages in conversations where they are a participant.
+
+#### GET `/api/messages/conversations` 🔒
+Get all conversations for the logged-in user, sorted by newest activity.
+
+**Success response (200):**
+```json
+[
+  {
+    "_id": "664f...",
+    "Participants": [
+      { "_id": "664f...", "Name": "Demo Client", "Email": "client@kfupm.edu.sa", "Role": "client" },
+      { "_id": "6650...", "Name": "Demo Provider", "Email": "provider@kfupm.edu.sa", "Role": "provider" }
+    ],
+    "LastMessage": "Can you confirm the delivery date?",
+    "LastMessageAt": "2026-05-02T12:00:00.000Z",
+    "UnreadCount": 1
+  }
+]
+```
+
+---
+
+#### POST `/api/messages/conversations` 🔒
+Create a conversation with another user, or return the existing one.
+
+**Request body:**
+```json
+{
+  "ParticipantID": "66501a2b3c4d5e6f7a8b9c0d"
+}
+```
+
+**Success response:** `201` for a new conversation, `200` for an existing conversation.
+
+**Error responses:** `400` Invalid participant | `400` Cannot message yourself | `404` User not found
+
+---
+
+#### GET `/api/messages/conversations/:conversationId/messages` 🔒
+Get all messages in a conversation. Messages from the other participant are marked as read when loaded.
+
+**Success response (200):**
+```json
+[
+  {
+    "_id": "6650...",
+    "ConversationID": "664f...",
+    "SenderID": { "_id": "6650...", "Name": "Demo Provider", "Email": "provider@kfupm.edu.sa", "Role": "provider" },
+    "Body": "I can start today.",
+    "ReadBy": ["6650..."],
+    "createdAt": "2026-05-02T12:00:00.000Z"
+  }
+]
+```
+
+---
+
+#### POST `/api/messages/conversations/:conversationId/messages` 🔒
+Send a message in an existing conversation.
+
+**Request body:**
+```json
+{
+  "Body": "Sounds good. Please send the first update tonight."
+}
+```
+
+| Field | Type | Required | Rules |
+|---|---|---|---|
+| Body | String | Yes | 1 to 2000 characters |
+
+**Success response (201):** Created message object with sender details.
+
+**Error responses:** `400` Empty message | `403` Not a participant | `404` Conversation not found
+
+---
+
+### 8. Admin — `/api/admin`
 
 Admin routes are protected and require an authenticated user with `Role: "admin"`.
 
@@ -916,6 +996,18 @@ curl -X POST http://localhost:5000/api/tasks \
 
 # Get all services sorted by rating
 curl "http://localhost:5000/api/services?sort=rating"
+
+# Create or open a conversation with another user
+curl -X POST http://localhost:5000/api/messages/conversations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"ParticipantID":"OTHER_USER_ID"}'
+
+# Send a message
+curl -X POST http://localhost:5000/api/messages/conversations/CONVERSATION_ID/messages \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"Body":"Hello, can we discuss this task?"}'
 ```
 
 ---

@@ -223,7 +223,16 @@ export function ClientDashboard() {
                       >
                         View Workspace
                       </Button>
-                      <Button variant="outline" onClick={() => navigate("/messages")}>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          navigate(
+                            job.ProviderID?._id
+                              ? `/messages?user=${job.ProviderID._id}`
+                              : "/messages",
+                          )
+                        }
+                      >
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Message
                       </Button>

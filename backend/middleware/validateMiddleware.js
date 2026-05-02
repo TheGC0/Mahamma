@@ -107,3 +107,19 @@ export const validateReview = (req, res, next) => {
   }
   next();
 };
+
+export const validateMessage = (req, res, next) => {
+  const { Body } = req.body;
+  const errors = [];
+
+  if (!Body || Body.trim().length === 0)
+    errors.push("Message body is required");
+  else if (Body.trim().length > 2000)
+    errors.push("Message body must be 2000 characters or less");
+
+  if (errors.length > 0) {
+    res.status(400);
+    return next(new Error(errors.join(". ")));
+  }
+  next();
+};

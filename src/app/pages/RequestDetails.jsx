@@ -233,7 +233,17 @@ export function RequestDetails() {
                           >
                             View Profile
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => navigate("/messages")}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigate(
+                                offer.FreelancerID?._id
+                                  ? `/messages?user=${offer.FreelancerID._id}`
+                                  : "/messages",
+                              )
+                            }
+                          >
                             <MessageSquare className="h-4 w-4 mr-1" />
                             Message
                           </Button>

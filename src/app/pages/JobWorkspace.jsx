@@ -39,7 +39,13 @@ import {
 } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { toast } from "sonner";
-import { getContractById, updateContractStatus, createReview } from "../../lib/api";
+import {
+  createConversation,
+  createReview,
+  getContractById,
+  sendConversationMessage,
+  updateContractStatus,
+} from "../../lib/api";
 
 export function JobWorkspace() {
   const navigate = useNavigate();
@@ -110,6 +116,24 @@ export function JobWorkspace() {
       toast.error(err.message || "Failed to submit review.");
     } finally {
       setIsSubmittingReview(false);
+    }
+  };
+
+  const handleSendWorkspaceMessage = async () => {
+    const body = message.trim();
+    const otherUserId =
+      userInfo?.Role === "provider" ? job.ClientID?._id : job.ProviderID?._id;
+
+    if (!body || !otherUserId) return;
+
+    try {
+      const conversation = await createConversation(otherUserId);
+      await sendConversationMessage(conversation._id, body);
+      setMessage("");
+      toast.success("Message sent.");
+      navigate(`/messages?conversation=${conversation._id}`);
+    } catch (err) {
+      toast.error(err.message || "Failed to send message.");
     }
   };
 
@@ -222,7 +246,8 @@ export function JobWorkspace() {
                       />
                       <Button
                         className="bg-[#F7931E] hover:bg-[#F7931E]/90"
-                        onClick={() => { toast.info("Messaging coming soon."); setMessage(""); }}
+                        onClick={handleSendWorkspaceMessage}
+                        disabled={!message.trim()}
                       >
                         <Send className="h-4 w-4" />
                       </Button>

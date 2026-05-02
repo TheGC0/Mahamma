@@ -215,7 +215,15 @@ export function ServiceDetail() {
                   <Button
                     variant="outline"
                     className="w-full h-12"
-                    onClick={() => navigate("/messages")}
+                    onClick={() =>
+                      userInfo
+                        ? navigate(
+                            service.ProviderID?._id
+                              ? `/messages?user=${service.ProviderID._id}`
+                              : "/messages",
+                          )
+                        : navigate("/login")
+                    }
                   >
                     <MessageSquare className="h-5 w-5 mr-2" />
                     Contact Provider
