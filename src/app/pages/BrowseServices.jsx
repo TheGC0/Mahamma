@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
@@ -21,54 +21,98 @@ import {
 import { Slider } from "../components/ui/slider";
 import { Badge } from "../components/ui/badge";
 import { StarRating } from "../components/StarRating";
-import { Search, Filter, Clock, CheckCircle } from "lucide-react";
-import { mockServices, categories } from "../lib/mock-data";
+import { Search, Filter, Clock } from "lucide-react";
+import { getServices } from "../../lib/api";
+import { categories } from "../lib/categories";
 
 export function BrowseServices() {
   const navigate = useNavigate();
+  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+
+  const [services, setServices] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 500]);
   const [minRating, setMinRating] = useState("0");
 
-  const filteredServices = mockServices.filter((service) => {
-    const matchesSearch =
-      service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || service.category === selectedCategory;
-    const matchesPrice =
-      service.price >= priceRange[0] && service.price <= priceRange[1];
-    const matchesRating = service.providerRating >= parseFloat(minRating);
-    return matchesSearch && matchesCategory && matchesPrice && matchesRating;
-  });
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setIsLoading(true);
+        const params = {};
+        if (selectedCategory !== "all") params.category = selectedCategory;
+        if (searchQuery) params.search = searchQuery;
+        if (priceRange[0] > 0) params.minPrice = priceRange[0];
+        if (priceRange[1] < 500) params.maxPrice = priceRange[1];
+        const data = await getServices(params);
+        setServices(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchServices();
+  }, [selectedCategory, priceRange]);
+
+  const handleSearch = async () => {
+    try {
+      setIsLoading(true);
+      const params = {};
+      if (selectedCategory !== "all") params.category = selectedCategory;
+      if (searchQuery) params.search = searchQuery;
+      if (priceRange[0] > 0) params.minPrice = priceRange[0];
+      if (priceRange[1] < 500) params.maxPrice = priceRange[1];
+      const data = await getServices(params);
+      setServices(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredServices = services.filter(
+    (s) => s.ProviderID && s.ProviderID.Rating >= parseFloat(minRating)
+  );
+
+  const handleClearFilters = () => {
+    setSelectedCategory("all");
+    setPriceRange([0, 500]);
+    setMinRating("0");
+    setSearchQuery("");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header isAuthenticated={true} userRole="client" userName="Abdullah" />
+      <Header
+        isAuthenticated={!!userInfo}
+        userRole={userInfo?.Role}
+        userName={userInfo?.Name}
+      />
 
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Browse Services
-          </h1>
-          <p className="text-gray-600">
-            Find the perfect service from verified KFUPM students
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Services</h1>
+          <p className="text-gray-600">Find the perfect service from verified KFUPM students</p>
         </div>
 
         {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
+        <div className="mb-6 flex gap-2">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
               placeholder="Search for services..."
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
           </div>
+          <Button onClick={handleSearch} className="bg-[#F7931E] hover:bg-[#F7931E]/90">
+            Search
+          </Button>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-8">
@@ -82,28 +126,21 @@ export function BrowseServices() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Category Filter */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Category</label>
-                  <Select
-                    value={selectedCategory}
-                    onValueChange={setSelectedCategory}
-                  >
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
                       {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Price Range */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
                     Price Range: {priceRange[0]} - {priceRange[1]} SAR
@@ -117,7 +154,6 @@ export function BrowseServices() {
                   />
                 </div>
 
-                {/* Rating Filter */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Minimum Rating</label>
                   <Select value={minRating} onValueChange={setMinRating}>
@@ -133,16 +169,7 @@ export function BrowseServices() {
                   </Select>
                 </div>
 
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    setSelectedCategory("all");
-                    setPriceRange([0, 500]);
-                    setMinRating("0");
-                    setSearchQuery("");
-                  }}
-                >
+                <Button variant="outline" className="w-full" onClick={handleClearFilters}>
                   Clear Filters
                 </Button>
               </CardContent>
@@ -151,95 +178,79 @@ export function BrowseServices() {
 
           {/* Services Grid */}
           <div className="lg:col-span-3">
-            <div className="mb-4 text-sm text-gray-600">
-              {filteredServices.length} services found
-            </div>
-            <div className="grid md:grid-cols-2 gap-6">
-              {filteredServices.map((service) => (
-                <Card
-                  key={service.id}
-                  className="hover:shadow-lg transition-all cursor-pointer"
-                  onClick={() => navigate(`/services/${service.id}`)}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge variant="secondary">{service.category}</Badge>
-                      {service.verified && (
-                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Verified
-                        </Badge>
-                      )}
-                    </div>
-                    <CardTitle className="text-lg">{service.title}</CardTitle>
-                    <CardDescription className="line-clamp-2">
-                      {service.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {/* Provider Info */}
-                      <div className="flex items-center gap-2">
-                        <div className="bg-gray-200 rounded-full p-2">
-                          <span className="text-xs font-medium">
-                            {service.providerName[0]}
-                          </span>
+            {isLoading ? (
+              <div className="text-center py-12 text-gray-500">Loading services...</div>
+            ) : (
+              <>
+                <div className="mb-4 text-sm text-gray-600">
+                  {filteredServices.length} services found
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {filteredServices.map((service) => (
+                    <Card
+                      key={service._id}
+                      className="hover:shadow-lg transition-all cursor-pointer"
+                      onClick={() => navigate(`/services/${service._id}`)}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between mb-2">
+                          <Badge variant="secondary">{service.Category}</Badge>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {service.providerName}
-                          </p>
-                          <StarRating
-                            rating={service.providerRating}
-                            size="sm"
-                          />
-                        </div>
-                      </div>
+                        <CardTitle className="text-lg">{service.Title}</CardTitle>
+                        <CardDescription className="line-clamp-2">
+                          {service.Description}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="bg-gray-200 rounded-full p-2">
+                              <span className="text-xs font-medium">
+                                {service.ProviderID?.Name?.[0] || "?"}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {service.ProviderID?.Name}
+                              </p>
+                              <StarRating rating={service.ProviderID?.Rating || 0} size="sm" />
+                            </div>
+                          </div>
 
-                      {/* Meta Info */}
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-1 text-gray-600">
-                          <Clock className="h-4 w-4" />
-                          <span>{service.deliveryTime}</span>
-                        </div>
-                        <div className="text-lg font-bold text-[#F7931E]">
-                          {service.price} SAR
-                        </div>
-                      </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-1 text-gray-600">
+                              <Clock className="h-4 w-4" />
+                              <span>{service.DeliveryTime}</span>
+                            </div>
+                            <div className="text-lg font-bold text-[#F7931E]">
+                              {service.Price} SAR
+                            </div>
+                          </div>
 
-                      <Button
-                        className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/services/${service.id}`);
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                          <Button
+                            className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/services/${service._id}`);
+                            }}
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
 
-            {filteredServices.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">
-                  No services found matching your criteria
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => {
-                    setSelectedCategory("all");
-                    setPriceRange([0, 500]);
-                    setMinRating("0");
-                    setSearchQuery("");
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              </div>
+                {filteredServices.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">No services found matching your criteria</p>
+                    <Button variant="outline" className="mt-4" onClick={handleClearFilters}>
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

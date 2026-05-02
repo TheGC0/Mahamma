@@ -1,0 +1,58 @@
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import connectDB from "./config/db.js";
+import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
+import authRoutes from "./routes/authRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
+import serviceRoutes from "./routes/serviceRoutes.js";
+import contractRoutes from "./routes/contractRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import { standaloneRouter as proposalStandaloneRouter } from "./routes/proposalRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+
+dotenv.config();
+
+connectDB();
+
+const app = express();
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  : ["http://localhost:5173"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+app.use(express.json());
+
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/contracts", contractRoutes);
+app.use("/api/proposals", proposalStandaloneRouter);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/admin", adminRoutes);
+
+app.get("/", (req, res) => {
+  res.json({ message: "Mahamma API is running", version: "1.0.0" });
+});
+
+app.use(notFound);
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -12,21 +12,36 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { register } from "../../lib/api";
 
 export function Signup() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [major, setMajor] = useState("");
   const [role, setRole] = useState("client");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
-    // Mock signup - redirect based on role
-    if (role === "provider") {
-      navigate("/provider/dashboard");
-    } else {
-      navigate("/client/dashboard");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const data = await register({ Name: name, Email: email, Password: password, Role: role, Major: major });
+      localStorage.setItem("userInfo", JSON.stringify(data));
+
+      if (role === "provider") {
+        navigate("/provider/dashboard");
+      } else {
+        navigate("/client/dashboard");
+      }
+    } catch (err) {
+      setError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -36,7 +51,11 @@ export function Signup() {
       <div className="container mx-auto max-w-md px-4 py-20">
         <Card>
           <CardHeader className="text-center">
-            <img src="/logo_2.png" alt="Mahamma logo" className="mx-auto mb-4 h-16 w-16 rounded-lg object-contain" />
+            <img
+              src="/logo_2.png"
+              alt="Mahamma logo"
+              className="mx-auto mb-4 h-16 w-16 rounded-lg object-contain"
+            />
             <CardTitle className="text-2xl">Create Account</CardTitle>
             <CardDescription>
               Join Mahamma - KFUPM's freelance platform
@@ -44,6 +63,11 @@ export function Signup() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignup} className="space-y-4">
+              {error && (
+                <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input
@@ -65,16 +89,23 @@ export function Signup() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-
-                <p className="text-xs text-gray-500">
-                  You'll receive a verification email
-                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="major">Major (Optional)</Label>
+                <Input
+                  id="major"
+                  type="text"
+                  placeholder="Computer Science"
+                  value={major}
+                  onChange={(e) => setMajor(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
+                  placeholder="Min 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -89,23 +120,15 @@ export function Signup() {
                   <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:border-[#F7931E]">
                     <RadioGroupItem value="client" id="client" />
                     <Label htmlFor="client" className="cursor-pointer flex-1">
-                      <div className="font-medium">
-                        Hire freelancers (Client)
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Post tasks and find services
-                      </div>
+                      <div className="font-medium">Hire freelancers (Client)</div>
+                      <div className="text-sm text-gray-500">Post tasks and find services</div>
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:border-[#F7931E]">
                     <RadioGroupItem value="provider" id="provider" />
                     <Label htmlFor="provider" className="cursor-pointer flex-1">
-                      <div className="font-medium">
-                        Offer my services (Provider)
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Create services and earn
-                      </div>
+                      <div className="font-medium">Offer my services (Provider)</div>
+                      <div className="text-sm text-gray-500">Create services and earn</div>
                     </Label>
                   </div>
                 </RadioGroup>
@@ -113,8 +136,9 @@ export function Signup() {
               <Button
                 type="submit"
                 className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
+                disabled={isLoading}
               >
-                Sign Up
+                {isLoading ? "Creating account..." : "Sign Up"}
               </Button>
             </form>
             <div className="mt-6 text-center text-sm">

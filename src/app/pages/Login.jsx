@@ -11,29 +11,35 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-
-const EXAMPLE_CLIENT = { email: "client@kfupm.edu.sa", password: "client123" };
-const EXAMPLE_PROVIDER = { email: "provider@kfupm.edu.sa", password: "provider123" };
-const EXAMPLE_ADMIN = { email: "admin@kfupm.edu.sa", password: "admin123" };
+import { login } from "../../lib/api";
 
 export function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
-    if (email === EXAMPLE_CLIENT.email && password === EXAMPLE_CLIENT.password) {
-      navigate("/client/dashboard");
-    } else if (email === EXAMPLE_PROVIDER.email && password === EXAMPLE_PROVIDER.password) {
-      navigate("/provider/dashboard");
-    } else if (email === EXAMPLE_ADMIN.email && password === EXAMPLE_ADMIN.password) {
-      navigate("/admin");
-    } else {
-      setError("Invalid email or password. Use one of the example accounts below.");
+    try {
+      const data = await login(email, password);
+      localStorage.setItem("userInfo", JSON.stringify(data));
+
+      if (data.Role === "admin") {
+        navigate("/admin");
+      } else if (data.Role === "provider") {
+        navigate("/provider/dashboard");
+      } else {
+        navigate("/client/dashboard");
+      }
+    } catch (err) {
+      setError(err.message || "Invalid email or password.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -43,19 +49,15 @@ export function Login() {
       <div className="container mx-auto max-w-md px-4 py-20">
         <Card>
           <CardHeader className="text-center">
-            <img src="/logo_2.png" alt="Mahamma logo" className="mx-auto mb-4 h-16 w-16 rounded-lg object-contain" />
+            <img
+              src="/logo_2.png"
+              alt="Mahamma logo"
+              className="mx-auto mb-4 h-16 w-16 rounded-lg object-contain"
+            />
             <CardTitle className="text-2xl">Welcome Back</CardTitle>
             <CardDescription>Login to your Mahamma account</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 p-3 text-sm text-blue-800 bg-blue-50 rounded-md">
-              <p className="font-semibold mb-1">Demo Accounts:</p>
-              <ul className="list-disc list-inside bg-transparent space-y-1">
-                <li>Client: <strong>{EXAMPLE_CLIENT.email}</strong> / {EXAMPLE_CLIENT.password}</li>
-                <li>Freelancer: <strong>{EXAMPLE_PROVIDER.email}</strong> / {EXAMPLE_PROVIDER.password}</li>
-                <li>Admin: <strong>{EXAMPLE_ADMIN.email}</strong> / {EXAMPLE_ADMIN.password}</li>
-              </ul>
-            </div>
             <form onSubmit={handleLogin} className="space-y-4">
               {error && (
                 <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
@@ -86,8 +88,9 @@ export function Login() {
               <Button
                 type="submit"
                 className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
+                disabled={isLoading}
               >
-                Login
+                {isLoading ? "Logging in..." : "Login"}
               </Button>
             </form>
             <div className="mt-6 text-center text-sm">

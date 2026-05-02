@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
@@ -17,99 +18,63 @@ import {
 } from "../components/ui/tabs";
 import { Badge } from "../components/ui/badge";
 import { StatusBadge } from "../components/StatusBadge";
-import { StarRating } from "../components/StarRating";
 import {
   Plus,
   Briefcase,
   MessageSquare,
-  Heart,
   Clock,
   FileText,
 } from "lucide-react";
+import { getTasks, getMyContracts } from "../../lib/api";
 
 export function ClientDashboard() {
   const navigate = useNavigate();
+  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
 
-  const myRequests = [
-    {
-      id: "t1",
-      title: "Mobile App UI Design",
-      category: "Design",
-      budget: "300-500 SAR",
-      status: "open",
-      offers: 3,
-      createdAt: "2 days ago",
-    },
-    {
-      id: "t4",
-      title: "Website SEO Optimization",
-      category: "Marketing",
-      budget: "200-300 SAR",
-      status: "in_progress",
-      offers: 0,
-      createdAt: "1 week ago",
-    },
-  ];
+  const [myRequests, setMyRequests] = useState([]);
+  const [activeJobs, setActiveJobs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const activeJobs = [
-    {
-      id: "j1",
-      title: "Logo Design for Startup",
-      provider: "Ahmed Al-Otaibi",
-      status: "in_progress",
-      progress: 60,
-      deadline: "3 days",
-    },
-    {
-      id: "j2",
-      title: "Python Data Analysis",
-      provider: "Sara Mohammed",
-      status: "delivered",
-      progress: 100,
-      deadline: "Completed",
-    },
-  ];
+  useEffect(() => {
+    if (!userInfo) { navigate("/login"); return; }
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [tasks, contracts] = await Promise.all([
+          getTasks({ clientId: userInfo._id }),
+          getMyContracts(),
+        ]);
+        setMyRequests(tasks);
+        setActiveJobs(contracts);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const savedProviders = [
-    {
-      id: "p1",
-      name: "Ahmed Al-Otaibi",
-      specialty: "Logo & Brand Design",
-      rating: 4.9,
-      jobs: 45,
-    },
-    {
-      id: "p2",
-      name: "Sara Mohammed",
-      specialty: "Python & Data Science",
-      rating: 5.0,
-      jobs: 32,
-    },
-  ];
+  const activeRequestsCount = myRequests.filter((r) => r.Status === "open").length;
+  const ongoingJobsCount = activeJobs.filter((j) => j.Status === "in_progress" || j.Status === "delivered").length;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header isAuthenticated={true} userRole="client" userName="Abdullah" />
+      <Header isAuthenticated={!!userInfo} userRole={userInfo?.Role} userName={userInfo?.Name} />
 
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Client Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Manage your tasks, jobs, and freelancers
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Client Dashboard</h1>
+          <p className="text-gray-600">Manage your tasks, jobs, and freelancers</p>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Active Requests</p>
-                  <p className="text-3xl font-bold text-gray-900">2</p>
+                  <p className="text-3xl font-bold text-gray-900">{activeRequestsCount}</p>
                 </div>
                 <FileText className="h-8 w-8 text-[#F7931E]" />
               </div>
@@ -120,7 +85,7 @@ export function ClientDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Ongoing Jobs</p>
-                  <p className="text-3xl font-bold text-gray-900">2</p>
+                  <p className="text-3xl font-bold text-gray-900">{ongoingJobsCount}</p>
                 </div>
                 <Briefcase className="h-8 w-8 text-blue-600" />
               </div>
@@ -130,9 +95,8 @@ export function ClientDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Spent</p>
-                  <p className="text-3xl font-bold text-gray-900">1,200</p>
-                  <p className="text-xs text-gray-500">SAR</p>
+                  <p className="text-sm text-gray-600 mb-1">Total Tasks</p>
+                  <p className="text-3xl font-bold text-gray-900">{myRequests.length}</p>
                 </div>
                 <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg">
                   ر.س
@@ -140,209 +104,134 @@ export function ClientDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Saved Providers</p>
-                  <p className="text-3xl font-bold text-gray-900">2</p>
-                </div>
-                <Heart className="h-8 w-8 text-red-500" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Quick Actions */}
         <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <Button
-            className="h-auto py-4 bg-[#F7931E] hover:bg-[#F7931E]/90"
-            onClick={() => navigate("/client/post-task")}
-          >
+          <Button className="h-auto py-4 bg-[#F7931E] hover:bg-[#F7931E]/90" onClick={() => navigate("/client/post-task")}>
             <Plus className="mr-2 h-5 w-5" />
             Post a New Task
           </Button>
-          <Button
-            variant="outline"
-            className="h-auto py-4"
-            onClick={() => navigate("/services")}
-          >
+          <Button variant="outline" className="h-auto py-4" onClick={() => navigate("/services")}>
             Browse Services
           </Button>
-          <Button
-            variant="outline"
-            className="h-auto py-4"
-            onClick={() => navigate("/messages")}
-          >
+          <Button variant="outline" className="h-auto py-4" onClick={() => navigate("/messages")}>
             <MessageSquare className="mr-2 h-5 w-5" />
             Messages
           </Button>
         </div>
 
-        {/* Main Content Tabs */}
         <Tabs defaultValue="requests" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="requests">My Requests</TabsTrigger>
             <TabsTrigger value="jobs">Active Jobs</TabsTrigger>
-            <TabsTrigger value="saved">Saved Providers</TabsTrigger>
           </TabsList>
 
-          {/* My Requests Tab */}
           <TabsContent value="requests" className="space-y-4">
-            {myRequests.map((request) => (
-              <Card key={request.id} className="hover:shadow-md transition-all">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-xl">
-                          {request.title}
-                        </CardTitle>
-                        <StatusBadge status={request.status} />
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <Badge variant="outline">{request.category}</Badge>
-                        <span>{request.budget}</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {request.createdAt}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {request.offers > 0 && (
-                        <Badge className="bg-[#F7931E] hover:bg-[#F7931E]/90">
-                          {request.offers} Offers
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
+            {isLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading...</div>
+            ) : myRequests.length === 0 ? (
+              <Card className="text-center py-12">
                 <CardContent>
-                  <div className="flex gap-2">
-                    {request.offers > 0 && (
-                      <Button
-                        className="bg-[#F7931E] hover:bg-[#F7931E]/90"
-                        onClick={() =>
-                          navigate(`/client/request/${request.id}`)
-                        }
-                      >
-                        View Offers ({request.offers})
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate(`/client/request/${request.id}`)}
-                    >
-                      View Details
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate(`/client/edit-task/${request.id}`)}
-                    >
-                      Edit Request
-                    </Button>
-                  </div>
+                  <p className="text-gray-500 mb-4">No tasks posted yet</p>
+                  <Button className="bg-[#F7931E] hover:bg-[#F7931E]/90" onClick={() => navigate("/client/post-task")}>
+                    Post Your First Task
+                  </Button>
                 </CardContent>
               </Card>
-            ))}
-          </TabsContent>
-
-          {/* Active Jobs Tab */}
-          <TabsContent value="jobs" className="space-y-4">
-            {activeJobs.map((job) => (
-              <Card key={job.id} className="hover:shadow-md transition-all">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-xl">{job.title}</CardTitle>
-                        <StatusBadge status={job.status} />
-                      </div>
-                      <CardDescription>
-                        Provider: {job.provider}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-600">Progress</span>
-                        <span className="font-medium">{job.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-[#F7931E] h-2 rounded-full transition-all"
-                          style={{ width: `${job.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        className="bg-[#F7931E] hover:bg-[#F7931E]/90"
-                        onClick={() => navigate(`/client/jobs/${job.id}`)}
-                      >
-                        View Workspace
-                      </Button>
-                      <Button variant="outline">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Message
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          {/* Saved Providers Tab */}
-          <TabsContent value="saved" className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              {savedProviders.map((provider) => (
-                <Card
-                  key={provider.id}
-                  className="hover:shadow-md transition-all"
-                >
+            ) : (
+              myRequests.map((request) => (
+                <Card key={request._id} className="hover:shadow-md transition-all">
                   <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <div className="bg-gray-200 rounded-full p-4">
-                        <span className="text-lg font-bold">
-                          {provider.name[0]}
-                        </span>
-                      </div>
+                    <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-lg mb-1">
-                          {provider.name}
-                        </CardTitle>
-                        <CardDescription>{provider.specialty}</CardDescription>
-                        <div className="mt-2 flex items-center gap-4">
-                          <StarRating rating={provider.rating} />
-                          <span className="text-sm text-gray-600">
-                            {provider.jobs} jobs
+                        <div className="flex items-center gap-3 mb-2">
+                          <CardTitle className="text-xl">{request.Title}</CardTitle>
+                          <StatusBadge status={request.Status} />
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <Badge variant="outline">{request.Category}</Badge>
+                          <span>{request.Budget} SAR</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {new Date(request.createdAt).toLocaleDateString()}
                           </span>
                         </div>
+                      </div>
+                      <div className="text-right">
+                        {request.ProposalCount > 0 && (
+                          <Badge className="bg-[#F7931E] hover:bg-[#F7931E]/90">
+                            {request.ProposalCount} Offers
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-2">
                       <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => navigate(`/providers/${provider.id}`)}
+                        className="bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={() => navigate(`/client/request/${request._id}`)}
                       >
-                        View Profile
+                        View Details
                       </Button>
-                      <Button variant="outline">
-                        <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                      <Button variant="outline" onClick={() => navigate(`/client/edit-task/${request._id}`)}>
+                        Edit Request
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="jobs" className="space-y-4">
+            {isLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading...</div>
+            ) : activeJobs.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <p className="text-gray-500">No active jobs yet</p>
+                  <p className="text-sm text-gray-400 mt-2">Accept a proposal to start a job</p>
+                </CardContent>
+              </Card>
+            ) : (
+              activeJobs.map((job) => (
+                <Card key={job._id} className="hover:shadow-md transition-all">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <CardTitle className="text-xl">
+                            {job.ProposalID?.TaskID?.Title || job.TaskID?.Title || "Job"}
+                          </CardTitle>
+                          <StatusBadge status={job.Status} />
+                        </div>
+                        <CardDescription>
+                          Provider: {job.ProviderID?.Name || job.ProposalID?.FreelancerID?.Name}
+                        </CardDescription>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-[#F7931E]">{job.AgreedAmount} SAR</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button
+                        className="bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={() => navigate(`/client/jobs/${job._id}`)}
+                      >
+                        View Workspace
+                      </Button>
+                      <Button variant="outline" onClick={() => navigate("/messages")}>
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Message
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
