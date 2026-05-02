@@ -165,9 +165,23 @@ export const updateContractStatus = async (req, res, next) => {
       throw new Error("Not authorized to update this contract");
     }
 
+    const isClient = contract.ClientID.toString() === req.user._id.toString();
+    const isProvider = contract.ProviderID.toString() === req.user._id.toString();
+    const isAdmin = req.user.Role === "admin";
+
     if (["completed", "cancelled"].includes(contract.Status)) {
       res.status(400);
       throw new Error("Completed or cancelled contracts cannot be updated");
+    }
+
+    if (Status === "delivered" && !isProvider && !isAdmin) {
+      res.status(403);
+      throw new Error("Only the provider can mark this contract as delivered");
+    }
+
+    if (Status === "completed" && !isClient && !isAdmin) {
+      res.status(403);
+      throw new Error("Only the client can complete this contract");
     }
 
     if (Status === "delivered" && contract.Status !== "active") {

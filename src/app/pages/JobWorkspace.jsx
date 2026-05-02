@@ -58,6 +58,7 @@ export function JobWorkspace() {
   const [review, setReview] = useState({ rating: 5, comment: "" });
   const [showReviewSuccess, setShowReviewSuccess] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -78,29 +79,60 @@ export function JobWorkspace() {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case "active":
+      case "in_progress": return "bg-blue-500";
       case "completed": return "bg-green-500";
       case "delivered": return "bg-[#F7931E]";
-      case "in_progress": return "bg-blue-500";
       default: return "bg-gray-300";
     }
   };
 
+  const getProgressIndex = (status) => {
+    switch (status) {
+      case "delivered": return 2;
+      case "completed": return 3;
+      case "cancelled": return 1;
+      case "active":
+      default: return 1;
+    }
+  };
+
+  const progressIndex = job ? getProgressIndex(job.Status) : 0;
+
   const timelineEvents = job ? [
-    { status: "created", label: "Open", date: new Date(job.createdAt).toLocaleDateString(), completed: true },
-    { status: "started", label: "In Progress", date: new Date(job.createdAt).toLocaleDateString(), completed: true },
+    { status: "active", label: "Open", date: new Date(job.createdAt).toLocaleDateString(), completed: progressIndex >= 0 },
+    { status: "active", label: "In Progress", date: new Date(job.createdAt).toLocaleDateString(), completed: progressIndex >= 1 },
     {
       status: "delivered",
       label: "Delivered",
       date: job.Status === "delivered" || job.Status === "completed" ? new Date(job.updatedAt).toLocaleDateString() : null,
-      completed: job.Status === "delivered" || job.Status === "completed",
+      completed: progressIndex >= 2,
     },
     {
       status: "completed",
       label: "Completed",
       date: job.Status === "completed" ? new Date(job.updatedAt).toLocaleDateString() : null,
-      completed: job.Status === "completed",
+      completed: progressIndex >= 3,
     },
   ] : [];
+
+  const handleUpdateProgress = async (Status) => {
+    try {
+      setIsUpdatingProgress(true);
+      await updateContractStatus(jobId, Status);
+      const refreshed = await getContractById(jobId);
+      setJob(refreshed);
+      const messages = {
+        delivered: "Progress updated to delivered.",
+        cancelled: "Job cancelled.",
+      };
+      toast.success(messages[Status] || "Progress updated.");
+    } catch (err) {
+      toast.error(err.message || "Failed to update progress.");
+    } finally {
+      setIsUpdatingProgress(false);
+    }
+  };
 
   const handleSubmitReview = async () => {
     try {
@@ -189,7 +221,7 @@ export function JobWorkspace() {
             <div className="relative">
               <div className="flex items-start justify-between">
                 {timelineEvents.map((event, index) => (
-                  <div key={event.status} className="flex flex-col items-center flex-1 relative">
+                  <div key={`${event.status}-${event.label}`} className="flex flex-col items-center flex-1 relative">
                     <div className="flex flex-col items-center">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${event.completed ? getStatusColor(event.status) : "bg-gray-300"} transition-all z-10 relative`}>
                         {event.completed ? (
@@ -215,6 +247,42 @@ export function JobWorkspace() {
                 ))}
               </div>
             </div>
+
+            {job.Status !== "completed" && job.Status !== "cancelled" && (
+              <div className="mt-8 flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Current progress: {job.Status === "active" ? "In Progress" : job.Status}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {userInfo?.Role === "provider"
+                      ? "Update the job when the work is ready for client review."
+                      : "The freelancer controls delivery; you complete it after review."}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {userInfo?.Role === "provider" && job.Status === "active" && (
+                    <Button
+                      className="bg-[#F7931E] hover:bg-[#F7931E]/90"
+                      onClick={() => handleUpdateProgress("delivered")}
+                      disabled={isUpdatingProgress}
+                    >
+                      <Package className="mr-2 h-4 w-4" />
+                      Mark as Delivered
+                    </Button>
+                  )}
+                  {(job.Status === "active" || job.Status === "delivered") && (
+                    <Button
+                      variant="outline"
+                      onClick={() => handleUpdateProgress("cancelled")}
+                      disabled={isUpdatingProgress}
+                    >
+                      Cancel Job
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -266,74 +334,82 @@ export function JobWorkspace() {
                     Delivery Complete
                   </CardTitle>
                   <CardDescription>
-                    The freelancer has marked this job as delivered. Please review the work and provide feedback.
+                    {userInfo?.Role === "client"
+                      ? "The freelancer has marked this job as delivered. Please review the work and provide feedback."
+                      : "The work has been delivered and is waiting for the client to review it."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button className="bg-green-600 hover:bg-green-700">
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Approve & Complete
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-lg">
-                      {showReviewSuccess ? (
-                        <div className="text-center py-8">
-                          <div className="bg-green-100 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                            <CheckCircle className="h-10 w-10 text-green-600" />
+                  {userInfo?.Role === "client" ? (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="bg-green-600 hover:bg-green-700">
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Approve & Complete
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-lg">
+                        {showReviewSuccess ? (
+                          <div className="text-center py-8">
+                            <div className="bg-green-100 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                              <CheckCircle className="h-10 w-10 text-green-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Review Submitted!</h3>
+                            <p className="text-gray-600">Thank you for your feedback. The job is now complete.</p>
                           </div>
-                          <h3 className="text-2xl font-bold text-gray-900 mb-2">Review Submitted!</h3>
-                          <p className="text-gray-600">Thank you for your feedback. The job is now complete.</p>
-                        </div>
-                      ) : (
-                        <>
-                          <DialogHeader>
-                            <DialogTitle>Submit Review</DialogTitle>
-                            <DialogDescription>Rate your experience with {providerName}</DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label>Rating *</Label>
-                              <div className="flex gap-2 justify-center p-4 bg-gray-50 rounded-lg">
-                                {[1, 2, 3, 4, 5].map((rating) => (
-                                  <button
-                                    key={rating}
-                                    onClick={() => setReview({ ...review, rating })}
-                                    className="focus:outline-none transition-transform hover:scale-110"
-                                  >
-                                    <Star className={`h-10 w-10 ${rating <= review.rating ? "fill-[#F7931E] text-[#F7931E]" : "fill-gray-200 text-gray-200"}`} />
-                                  </button>
-                                ))}
+                        ) : (
+                          <>
+                            <DialogHeader>
+                              <DialogTitle>Submit Review</DialogTitle>
+                              <DialogDescription>Rate your experience with {providerName}</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label>Rating *</Label>
+                                <div className="flex gap-2 justify-center p-4 bg-gray-50 rounded-lg">
+                                  {[1, 2, 3, 4, 5].map((rating) => (
+                                    <button
+                                      key={rating}
+                                      onClick={() => setReview({ ...review, rating })}
+                                      className="focus:outline-none transition-transform hover:scale-110"
+                                    >
+                                      <Star className={`h-10 w-10 ${rating <= review.rating ? "fill-[#F7931E] text-[#F7931E]" : "fill-gray-200 text-gray-200"}`} />
+                                    </button>
+                                  ))}
+                                </div>
+                                <p className="text-center text-sm font-medium text-gray-700">
+                                  {review.rating === 5 ? "Excellent!" : review.rating === 4 ? "Good" : review.rating === 3 ? "Average" : review.rating === 2 ? "Below Average" : "Poor"}
+                                </p>
                               </div>
-                              <p className="text-center text-sm font-medium text-gray-700">
-                                {review.rating === 5 ? "Excellent!" : review.rating === 4 ? "Good" : review.rating === 3 ? "Average" : review.rating === 2 ? "Below Average" : "Poor"}
-                              </p>
+                              <div className="space-y-2">
+                                <Label>Review Comment *</Label>
+                                <Textarea
+                                  placeholder="Share your experience working with this freelancer..."
+                                  value={review.comment}
+                                  onChange={(e) => setReview({ ...review, comment: e.target.value })}
+                                  rows={4}
+                                />
+                              </div>
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <p className="text-sm text-blue-900">Your review will be visible on the provider's profile.</p>
+                              </div>
+                              <Button
+                                className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
+                                onClick={handleSubmitReview}
+                                disabled={!review.comment.trim() || isSubmittingReview}
+                              >
+                                {isSubmittingReview ? "Submitting..." : "Submit Review & Complete Job"}
+                              </Button>
                             </div>
-                            <div className="space-y-2">
-                              <Label>Review Comment *</Label>
-                              <Textarea
-                                placeholder="Share your experience working with this freelancer..."
-                                value={review.comment}
-                                onChange={(e) => setReview({ ...review, comment: e.target.value })}
-                                rows={4}
-                              />
-                            </div>
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                              <p className="text-sm text-blue-900">💡 Your review will be visible on the provider's profile</p>
-                            </div>
-                            <Button
-                              className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
-                              onClick={handleSubmitReview}
-                              disabled={!review.comment.trim() || isSubmittingReview}
-                            >
-                              {isSubmittingReview ? "Submitting..." : "Submit Review & Complete Job"}
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </DialogContent>
-                  </Dialog>
+                          </>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  ) : (
+                    <div className="rounded-lg border border-green-200 bg-white p-4 text-sm text-green-800">
+                      Waiting for the client to approve the delivery.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

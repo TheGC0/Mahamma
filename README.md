@@ -733,16 +733,22 @@ Create a contract from an accepted proposal.
 ---
 
 #### PUT `/api/contracts/:id/status` 🔒 *(contract parties)*
-Mark a contract as `completed` or `cancelled`.
+Move a contract through the workspace progress states.
 
 **Request body:**
 ```json
-{ "Status": "completed" }
+{ "Status": "delivered" }
 ```
 
-Completing a contract automatically sets the task status to `completed`.
+| Status | Meaning |
+|---|---|
+| delivered | Provider marks active work as delivered for client review |
+| completed | Client approves delivered work; the related task becomes `completed` |
+| cancelled | Either contract party cancels the contract; the related task becomes `cancelled` |
 
 **Success response (200):** Updated contract object.
+
+**Authorization rules:** only the provider can set `delivered`; only the client can set `completed`; either party can set `cancelled`.
 
 ---
 
