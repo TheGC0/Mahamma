@@ -96,7 +96,7 @@ export const getMyServiceOrders = async (req, res, next) => {
 // @access  Private (client/provider party)
 export const updateServiceOrderStatus = async (req, res, next) => {
   try {
-    const { Status } = req.body;
+    const Status = (req.body.Status || "").toLowerCase();
 
     if (!["active", "delivered", "completed", "cancelled"].includes(Status)) {
       res.status(400);
@@ -115,6 +115,7 @@ export const updateServiceOrderStatus = async (req, res, next) => {
 
     const isClient = order.ClientID.toString() === req.user._id.toString();
     const isProvider = order.ProviderID.toString() === req.user._id.toString();
+    const currentStatus = (order.Status || "").toLowerCase();
 
     if (!isClient && !isProvider && req.user.Role !== "admin") {
       res.status(403);
@@ -136,22 +137,22 @@ export const updateServiceOrderStatus = async (req, res, next) => {
       throw new Error("Only the client can complete a service order");
     }
 
-    if (["completed", "cancelled"].includes(order.Status)) {
+    if (["completed", "cancelled"].includes(currentStatus)) {
       res.status(400);
       throw new Error("Completed or cancelled service orders cannot be updated");
     }
 
-    if (Status === "active" && order.Status !== "pending") {
+    if (Status === "active" && currentStatus !== "pending") {
       res.status(400);
       throw new Error("Only pending service orders can be accepted");
     }
 
-    if (Status === "delivered" && order.Status !== "active") {
+    if (Status === "delivered" && currentStatus !== "active") {
       res.status(400);
       throw new Error("Only active service orders can be marked as delivered");
     }
 
-    if (Status === "completed" && order.Status !== "delivered") {
+    if (Status === "completed" && currentStatus !== "delivered") {
       res.status(400);
       throw new Error("Only delivered service orders can be completed");
     }

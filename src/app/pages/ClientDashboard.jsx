@@ -18,19 +18,35 @@ import {
 } from "../components/ui/tabs";
 import { Badge } from "../components/ui/badge";
 import { StatusBadge } from "../components/StatusBadge";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
 import {
   Plus,
   Briefcase,
   MessageSquare,
   Clock,
   FileText,
+  Star,
+  CheckCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
+  createServiceOrderReview,
   getMyContracts,
   getServiceOrders,
   getTasks,
   updateServiceOrderStatus,
 } from "../../lib/api";
+
+const getOrderStatus = (order) => (order?.Status || "").toLowerCase();
 
 export function ClientDashboard() {
   const navigate = useNavigate();
@@ -40,6 +56,10 @@ export function ClientDashboard() {
   const [activeJobs, setActiveJobs] = useState([]);
   const [serviceOrders, setServiceOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewOrderId, setReviewOrderId] = useState("");
+  const [serviceOrderReview, setServiceOrderReview] = useState({ rating: 5, comment: "" });
+  const [showServiceReviewSuccess, setShowServiceReviewSuccess] = useState(false);
+  const [isSubmittingServiceReview, setIsSubmittingServiceReview] = useState(false);
 
   useEffect(() => {
     if (!userInfo) { navigate("/login"); return; }
@@ -66,16 +86,43 @@ export function ClientDashboard() {
   const activeRequestsCount = myRequests.filter((r) => r.Status === "open").length;
   const ongoingJobsCount =
     activeJobs.filter((j) => j.Status === "active" || j.Status === "in_progress" || j.Status === "delivered").length +
-    serviceOrders.filter((order) => order.Status === "pending" || order.Status === "active" || order.Status === "delivered").length;
+    serviceOrders.filter((order) => ["pending", "active", "delivered"].includes(getOrderStatus(order))).length;
 
-  const handleCompleteServiceOrder = async (orderId) => {
+  const resetServiceReviewForm = () => {
+    setServiceOrderReview({ rating: 5, comment: "" });
+    setShowServiceReviewSuccess(false);
+  };
+
+  const handleSubmitServiceOrderReview = async (order) => {
+    const comment = serviceOrderReview.comment.trim();
+    if (!comment) {
+      toast.error("Please write a review comment.");
+      return;
+    }
+
     try {
-      const updated = await updateServiceOrderStatus(orderId, "completed");
-      setServiceOrders((orders) =>
-        orders.map((order) => (order._id === orderId ? updated : order)),
-      );
+      setIsSubmittingServiceReview(true);
+      await createServiceOrderReview(order._id, {
+        Score: serviceOrderReview.rating,
+        Comment: comment,
+      });
+      setShowServiceReviewSuccess(true);
+      toast.success("Service completed and reviewed.");
+      window.setTimeout(() => {
+        setServiceOrders((orders) =>
+          orders.map((currentOrder) =>
+            currentOrder._id === order._id
+              ? { ...currentOrder, Status: "completed" }
+              : currentOrder,
+          ),
+        );
+        setReviewOrderId("");
+        resetServiceReviewForm();
+      }, 1200);
     } catch (err) {
-      console.error(err);
+      toast.error(err.message || "Failed to complete and review service.");
+    } finally {
+      setIsSubmittingServiceReview(false);
     }
   };
 
@@ -228,72 +275,150 @@ export function ClientDashboard() {
               </Card>
             ) : (
               <>
-                {serviceOrders.map((order) => (
-                  <Card key={order._id} className="hover:shadow-md transition-all">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <CardTitle className="text-xl">
-                              {order.ServiceID?.Title || "Service Order"}
-                            </CardTitle>
-                            <StatusBadge status={order.Status} />
+                {serviceOrders.map((order) => {
+                  const orderStatus = getOrderStatus(order);
+
+                  return (
+                    <Card key={order._id} className="hover:shadow-md transition-all">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <CardTitle className="text-xl">
+                                {order.ServiceID?.Title || "Service Order"}
+                              </CardTitle>
+                              <StatusBadge status={order.Status} />
+                            </div>
+                            <CardDescription>
+                              Provider: {order.ProviderID?.Name || "Provider"}
+                            </CardDescription>
                           </div>
-                          <CardDescription>
-                            Provider: {order.ProviderID?.Name || "Provider"}
-                          </CardDescription>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-[#F7931E]">{order.Price} SAR</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-[#F7931E]">{order.Price} SAR</p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="mb-4 text-sm text-gray-600">
+                          Delivery: {order.DeliveryTime}
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="mb-4 text-sm text-gray-600">
-                        Delivery: {order.DeliveryTime}
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <Button variant="outline" onClick={() => navigate(`/services/${order.ServiceID?._id}`)}>
-                          View Service
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() =>
-                            navigate(
-                              order.ProviderID?._id
-                                ? `/messages?user=${order.ProviderID._id}`
-                                : "/messages",
-                            )
-                          }
-                        >
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          Message
-                        </Button>
-                        {order.Status === "pending" && (
+                        <div className="flex gap-2 flex-wrap">
+                          <Button variant="outline" onClick={() => navigate(`/services/${order.ServiceID?._id}`)}>
+                            View Service
+                          </Button>
                           <Button
                             variant="outline"
-                            onClick={() => handleCancelServiceOrder(order._id)}
+                            onClick={() =>
+                              navigate(
+                                order.ProviderID?._id
+                                  ? `/messages?user=${order.ProviderID._id}`
+                                  : "/messages",
+                              )
+                            }
                           >
-                            Cancel Order
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Message
                           </Button>
-                        )}
-                        {order.Status === "active" && (
-                          <Button variant="outline" disabled>
-                            Waiting for Delivery
-                          </Button>
-                        )}
-                        {order.Status === "delivered" && (
-                          <Button
-                            className="bg-[#F7931E] hover:bg-[#F7931E]/90"
-                            onClick={() => handleCompleteServiceOrder(order._id)}
-                          >
-                            Mark Completed
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                          {orderStatus === "pending" && (
+                            <Button
+                              variant="outline"
+                              onClick={() => handleCancelServiceOrder(order._id)}
+                            >
+                              Cancel Order
+                            </Button>
+                          )}
+                          {orderStatus === "active" && (
+                            <Button variant="outline" disabled>
+                              Waiting for Delivery
+                            </Button>
+                          )}
+                          {orderStatus === "delivered" && (
+                            <Dialog
+                              open={reviewOrderId === order._id}
+                              onOpenChange={(open) => {
+                                setReviewOrderId(open ? order._id : "");
+                                if (!open) resetServiceReviewForm();
+                              }}
+                            >
+                              <DialogTrigger asChild>
+                                <Button className="bg-[#F7931E] hover:bg-[#F7931E]/90">
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Complete & Review
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-lg">
+                                {showServiceReviewSuccess ? (
+                                  <div className="text-center py-8">
+                                    <div className="bg-green-100 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                                      <CheckCircle className="h-10 w-10 text-green-600" />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Review Submitted</h3>
+                                    <p className="text-gray-600">The service order is now completed.</p>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <DialogHeader>
+                                      <DialogTitle>Complete Service Order</DialogTitle>
+                                      <DialogDescription>
+                                        Rate your experience with {order.ProviderID?.Name || "this provider"}.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      <div className="space-y-2">
+                                        <Label>Rating *</Label>
+                                        <div className="flex gap-2 justify-center p-4 bg-gray-50 rounded-lg">
+                                          {[1, 2, 3, 4, 5].map((rating) => (
+                                            <button
+                                              key={rating}
+                                              type="button"
+                                              onClick={() => setServiceOrderReview({ ...serviceOrderReview, rating })}
+                                              className="focus:outline-none transition-transform hover:scale-110"
+                                            >
+                                              <Star
+                                                className={`h-10 w-10 ${
+                                                  rating <= serviceOrderReview.rating
+                                                    ? "fill-[#F7931E] text-[#F7931E]"
+                                                    : "fill-gray-200 text-gray-200"
+                                                }`}
+                                              />
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label>Review Comment *</Label>
+                                        <Textarea
+                                          placeholder="Share your experience with this service..."
+                                          value={serviceOrderReview.comment}
+                                          onChange={(event) =>
+                                            setServiceOrderReview({
+                                              ...serviceOrderReview,
+                                              comment: event.target.value,
+                                            })
+                                          }
+                                          rows={4}
+                                        />
+                                      </div>
+                                      <Button
+                                        className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
+                                        onClick={() => handleSubmitServiceOrderReview(order)}
+                                        disabled={!serviceOrderReview.comment.trim() || isSubmittingServiceReview}
+                                      >
+                                        {isSubmittingServiceReview
+                                          ? "Submitting..."
+                                          : "Submit Review & Complete"}
+                                      </Button>
+                                    </div>
+                                  </>
+                                )}
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
 
                 {activeJobs.map((job) => (
                   <Card key={job._id} className="hover:shadow-md transition-all">

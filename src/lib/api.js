@@ -159,6 +159,22 @@ export const updateServiceOrderStatus = async (id, Status) => {
   return handleResponse(res);
 };
 
+export const getServiceOrderReviews = async (orderId) => {
+  const res = await fetch(`${API_URL}/service-orders/${orderId}/reviews`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(res);
+};
+
+export const createServiceOrderReview = async (orderId, reviewData) => {
+  const res = await fetch(`${API_URL}/service-orders/${orderId}/reviews`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(reviewData),
+  });
+  return handleResponse(res);
+};
+
 // ─── PROPOSALS ───────────────────────────────────────────────────────────────
 
 export const getProposalsByTask = async (taskId) => {
