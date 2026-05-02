@@ -57,6 +57,16 @@ const getParticipant = (conversation, currentUserId) => {
   );
 };
 
+const mergeConversation = (items, conversation) => {
+  if (!conversation?._id) return items;
+  const existingIndex = items.findIndex((item) => item._id === conversation._id);
+  if (existingIndex === -1) return [conversation, ...items];
+
+  return items.map((item) =>
+    item._id === conversation._id ? { ...item, ...conversation } : item,
+  );
+};
+
 export function Messages() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -95,13 +105,17 @@ export function Messages() {
         setError("");
 
         let activeConversationId = conversationId || "";
+        let directConversation = null;
 
         if (targetUserId) {
-          const conversation = await createConversation(targetUserId);
-          activeConversationId = conversation._id;
+          directConversation = await createConversation(targetUserId);
+          activeConversationId = directConversation._id;
           if (isMounted) {
-            setSelectedConversation(conversation._id);
-            navigate(`/messages?conversation=${conversation._id}`, {
+            setSelectedConversation(directConversation._id);
+            setConversations((current) =>
+              mergeConversation(current, directConversation),
+            );
+            navigate(`/messages?conversation=${directConversation._id}`, {
               replace: true,
             });
           }
@@ -109,10 +123,16 @@ export function Messages() {
           setSelectedConversation(conversationId);
         }
 
-        const data = await getConversations();
+        let data = await getConversations();
+        if (directConversation) {
+          data = mergeConversation(data, directConversation);
+        }
         if (!isMounted) return;
 
         setConversations(data);
+        if (activeConversationId) {
+          setSelectedConversation(activeConversationId);
+        }
 
         if (!activeConversationId && data.length > 0) {
           setSelectedConversation(data[0]._id);
@@ -142,9 +162,9 @@ export function Messages() {
 
     let isMounted = true;
 
-    const loadMessages = async () => {
+    const loadMessages = async ({ showLoader = false } = {}) => {
       try {
-        setIsLoadingMessages(true);
+        if (showLoader) setIsLoadingMessages(true);
         setError("");
         const data = await getConversationMessages(selectedConversation);
         if (!isMounted) return;
@@ -155,14 +175,18 @@ export function Messages() {
       } catch (err) {
         if (isMounted) setError(err.message || "Failed to load messages.");
       } finally {
-        if (isMounted) setIsLoadingMessages(false);
+        if (isMounted && showLoader) setIsLoadingMessages(false);
       }
     };
 
-    loadMessages();
+    loadMessages({ showLoader: true });
+    const intervalId = window.setInterval(() => {
+      loadMessages();
+    }, 10000);
 
     return () => {
       isMounted = false;
+      window.clearInterval(intervalId);
     };
   }, [selectedConversation, userInfo]);
 

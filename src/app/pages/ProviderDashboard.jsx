@@ -97,7 +97,7 @@ export function ProviderDashboard() {
     .filter((j) => j.Status === "completed")
     .reduce((sum, j) => sum + (j.AgreedAmount || 0), 0);
   const activeOrders =
-    activeJobs.filter((j) => j.Status === "in_progress" || j.Status === "delivered").length +
+    activeJobs.filter((j) => j.Status === "active" || j.Status === "in_progress" || j.Status === "delivered").length +
     serviceOrders.filter((order) => order.Status === "pending" || order.Status === "active").length;
 
   return (
@@ -341,11 +341,20 @@ export function ProviderDashboard() {
                         </span>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button className="bg-[#F7931E] hover:bg-[#F7931E]/90" onClick={() => navigate(`/client/jobs/${job._id}`)}>
                           Open Workspace
                         </Button>
-                        {job.Status === "in_progress" && (
+                        {job.ClientID?._id && (
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate(`/messages?user=${job.ClientID._id}`)}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Message Client
+                          </Button>
+                        )}
+                        {job.Status === "active" && (
                           <Button variant="outline" onClick={() => handleMarkAsDelivered(job._id)}>
                             Mark as Delivered
                           </Button>
