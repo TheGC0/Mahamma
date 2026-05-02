@@ -8,7 +8,19 @@ import User from "../models/User.js";
 // @access  Public
 export const getReviewsByService = async (req, res, next) => {
   try {
-    const reviews = await Review.find({ ServiceID: req.params.serviceId })
+    const service = await Service.findById(req.params.serviceId);
+    if (!service) {
+      res.status(404);
+      throw new Error("Service not found");
+    }
+
+    const contracts = await Contract.find({
+      ProviderID: service.ProviderID,
+      Status: "completed",
+    }).select("_id");
+
+    const contractIds = contracts.map((c) => c._id);
+    const reviews = await Review.find({ ContractID: { $in: contractIds } })
       .populate("ReviewerID", "Name Rating")
       .sort({ createdAt: -1 });
 
