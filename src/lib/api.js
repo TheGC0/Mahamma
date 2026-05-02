@@ -2,8 +2,19 @@ export const API_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 ).replace(/\/$/, "");
 
-export const getAuthHeaders = () => {
+export const getStoredUserInfo = () => {
   const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+
+  if (!userInfo?.token) {
+    localStorage.removeItem("userInfo");
+    return null;
+  }
+
+  return userInfo;
+};
+
+export const getAuthHeaders = () => {
+  const userInfo = getStoredUserInfo();
   return {
     "Content-Type": "application/json",
     ...(userInfo?.token ? { Authorization: `Bearer ${userInfo.token}` } : {}),

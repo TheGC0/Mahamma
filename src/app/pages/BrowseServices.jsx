@@ -22,12 +22,12 @@ import { Slider } from "../components/ui/slider";
 import { Badge } from "../components/ui/badge";
 import { StarRating } from "../components/StarRating";
 import { Search, Filter, Clock } from "lucide-react";
-import { getServices } from "../../lib/api";
+import { getServices, getStoredUserInfo } from "../../lib/api";
 import { categories } from "../lib/categories";
 
 export function BrowseServices() {
   const navigate = useNavigate();
-  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+  const userInfo = getStoredUserInfo();
 
   const [services, setServices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -18,13 +18,17 @@ import { Badge } from "./ui/badge";
 import { useEffect, useState } from "react";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { useNavigate } from "react-router";
-import { getConversations } from "../../lib/api";
+import { getConversations, getStoredUserInfo } from "../../lib/api";
 
 export function Header({ isAuthenticated = false, userRole, userName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
-  const normalizedRole = (userRole || "").toLowerCase();
+  const sessionUser = isAuthenticated ? getStoredUserInfo() : null;
+  const effectiveAuthenticated = Boolean(isAuthenticated && sessionUser);
+  const effectiveUserRole = sessionUser?.Role || userRole;
+  const effectiveUserName = sessionUser?.Name || userName;
+  const normalizedRole = (effectiveUserRole || "").toLowerCase();
   const isAdmin = normalizedRole === "admin";
   const isProvider = normalizedRole === "provider" || normalizedRole === "freelancer";
   const dashboardPath = isAdmin
@@ -32,11 +36,11 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
     : isProvider
       ? "/provider/dashboard"
       : "/client/dashboard";
-  const navItems = !isAuthenticated
+  const navItems = !effectiveAuthenticated
     ? [
         { label: "Browse Services", path: "/services" },
         { label: "Find Tasks", path: "/provider/tasks" },
-        { label: "Post a Task", path: "/client/post-task" },
+        { label: "Post a Task", path: "/login" },
       ]
     : isAdmin
       ? [{ label: "Admin Dashboard", path: "/admin" }]
@@ -53,7 +57,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
           ];
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!effectiveAuthenticated) {
       setUnreadMessages(0);
       return undefined;
     }
@@ -76,7 +80,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
     loadUnreadMessages();
     const intervalId = window.setInterval(loadUnreadMessages, 30000);
     return () => window.clearInterval(intervalId);
-  }, [isAuthenticated]);
+  }, [effectiveAuthenticated]);
 
   const handleNavigate = (path) => {
     navigate(path);
@@ -84,6 +88,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("userInfo");
     navigate("/");
   };
 
@@ -93,7 +98,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
         <div className="flex h-16 items-center justify-between">
           <button
             type="button"
-            onClick={() => handleNavigate("/")}
+            onClick={() => handleNavigate(effectiveAuthenticated ? dashboardPath : "/")}
             className="flex items-center gap-2"
           >
             <div className="flex items-center gap-2">
@@ -123,7 +128,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
           </nav>
 
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
+            {effectiveAuthenticated ? (
               <>
                 <NotificationDropdown />
 
@@ -148,7 +153,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
                         <User className="h-4 w-4" />
                       </div>
                       <span className="hidden md:inline text-sm">
-                        {userName}
+                        {effectiveUserName}
                       </span>
                     </Button>
                   </DropdownMenuTrigger>
@@ -228,7 +233,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
                 </button>
               ))}
 
-              {!isAuthenticated && (
+              {!effectiveAuthenticated && (
                 <>
                   <Button
                     variant="ghost"

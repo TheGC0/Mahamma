@@ -39,7 +39,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import { getTasks, createProposal } from "../../lib/api";
+import { getTasks, createProposal, getStoredUserInfo } from "../../lib/api";
 import { categories } from "../lib/categories";
 import { toast } from "sonner";
 
@@ -47,7 +47,7 @@ const EMPTY_OFFER_FORM = { price: "", deliveryTime: "", message: "" };
 
 export function BrowseTasks() {
   const navigate = useNavigate();
-  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+  const userInfo = getStoredUserInfo();
   const currentRole = (userInfo?.Role || userInfo?.role || "").toLowerCase();
   const isProviderUser = currentRole === "provider" || currentRole === "freelancer";
   const dashboardPath =

@@ -22,9 +22,11 @@ import {
   Wrench,
 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { getStoredUserInfo } from "../../lib/api";
 
 export function Landing() {
   const navigate = useNavigate();
+  const userInfo = getStoredUserInfo();
 
   const categories = [
     { name: "Design", icon: Palette, color: "bg-purple-100 text-purple-600" },
@@ -57,7 +59,7 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Header />
+      <Header isAuthenticated={!!userInfo} userRole={userInfo?.Role} userName={userInfo?.Name} />
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-orange-50 to-white py-20">

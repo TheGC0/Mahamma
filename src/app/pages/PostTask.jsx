@@ -22,13 +22,13 @@ import {
 } from "../components/ui/select";
 import { categories } from "../lib/categories";
 import { Calendar, DollarSign, AlertCircle } from "lucide-react";
-import { createTask, updateTask, getTaskById } from "../../lib/api";
+import { createTask, getStoredUserInfo, updateTask, getTaskById } from "../../lib/api";
 
 export function PostTask() {
   const navigate = useNavigate();
   const { taskId } = useParams();
   const isEditMode = !!taskId;
-  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+  const userInfo = getStoredUserInfo();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -44,6 +44,11 @@ export function PostTask() {
 
   useEffect(() => {
     if (!userInfo) { navigate("/login"); return; }
+    if ((userInfo.Role || "").toLowerCase() !== "client") {
+      navigate(userInfo.Role === "admin" ? "/admin" : "/provider/dashboard");
+      return;
+    }
+
     if (isEditMode) {
       getTaskById(taskId).then((task) => {
         setFormData({
