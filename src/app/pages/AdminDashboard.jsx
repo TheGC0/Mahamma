@@ -66,7 +66,7 @@ import {
   getAdminReports,
   updateReportStatus,
 } from "../../lib/api";
-import { categories as categoryList } from "../lib/mock-data";
+import { categories as categoryList } from "../lib/categories";
 
 const COLORS = ["#F7931E", "#3B82F6", "#10B981", "#8B5CF6", "#EF4444", "#F59E0B", "#06B6D4", "#84CC16", "#EC4899", "#6B7280"];
 
