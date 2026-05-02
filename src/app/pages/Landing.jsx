@@ -56,7 +56,7 @@ export function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       <Header />
 
       {/* Hero Section */}
