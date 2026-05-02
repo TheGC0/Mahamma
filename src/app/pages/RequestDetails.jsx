@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
 import { Button } from "../components/ui/button";
@@ -28,8 +28,10 @@ import { getTaskById, getProposalsByTask, updateTask } from "../../lib/api";
 
 export function RequestDetails() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { taskId } = useParams();
   const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+  const isPublicTaskView = location.pathname.startsWith("/tasks/");
 
   const [task, setTask] = useState(null);
   const [offers, setOffers] = useState([]);
@@ -48,9 +50,9 @@ export function RequestDetails() {
         const ownerId = taskData.ClientID?._id || taskData.ClientID;
         const currentUserId = userInfo?._id || userInfo?.id;
         const currentRole = (userInfo?.Role || userInfo?.role || "").toLowerCase();
+        const ownsTask = ownerId && currentUserId && String(ownerId) === String(currentUserId);
         const canViewOffers =
-          currentRole === "admin" ||
-          (ownerId && currentUserId && String(ownerId) === String(currentUserId));
+          !isPublicTaskView && (currentRole === "admin" || ownsTask);
 
         if (canViewOffers) {
           const proposalsData = await getProposalsByTask(taskId);
@@ -65,7 +67,7 @@ export function RequestDetails() {
       }
     };
     fetchData();
-  }, [taskId]);
+  }, [taskId, isPublicTaskView]);
 
   const toggleShortlist = (offerId) => {
     setShortlistedIds((prev) =>
@@ -87,11 +89,15 @@ export function RequestDetails() {
   const currentUserId = userInfo?._id || userInfo?.id || "";
   const currentRole = (userInfo?.Role || userInfo?.role || "").toLowerCase();
   const canManageTask =
-    currentRole === "admin" ||
-    Boolean(taskOwnerId && currentUserId && String(taskOwnerId) === String(currentUserId));
+    !isPublicTaskView &&
+    (currentRole === "admin" ||
+      Boolean(taskOwnerId && currentUserId && String(taskOwnerId) === String(currentUserId)));
   const isProviderUser = currentRole === "provider" || currentRole === "freelancer";
-  const backPath = canManageTask ? "/client/dashboard" : "/provider/tasks";
-  const backLabel = canManageTask ? "Back to Dashboard" : "Back to Find Tasks";
+  const isClientUser = currentRole === "client";
+  const showProviderSidebar = isPublicTaskView && isProviderUser;
+  const showSidebar = canManageTask || showProviderSidebar;
+  const backPath = canManageTask || isClientUser ? "/client/dashboard" : "/provider/tasks";
+  const backLabel = canManageTask || isClientUser ? "Back to Dashboard" : "Back to Find Tasks";
 
   if (isLoading) {
     return (
@@ -121,8 +127,8 @@ export function RequestDetails() {
           {backLabel}
         </Button>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
+        <div className={`grid gap-8 ${showSidebar ? "lg:grid-cols-3" : ""}`}>
+          <div className={showSidebar ? "lg:col-span-2 space-y-6" : "space-y-6"}>
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -278,7 +284,7 @@ export function RequestDetails() {
                   )}
                 </CardContent>
               </Card>
-            ) : (
+            ) : showProviderSidebar ? (
               <Card>
                 <CardHeader>
                   <CardTitle>Task Preview</CardTitle>
@@ -290,121 +296,123 @@ export function RequestDetails() {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            ) : null}
           </div>
 
-          <div className="space-y-6">
-            {canManageTask && shortlistedOffers.length > 0 && (
-              <Card className="border-[#F7931E]">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Star className="h-5 w-5 text-[#F7931E] fill-[#F7931E]" />
-                    Shortlisted ({shortlistedOffers.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {shortlistedOffers.map((offer) => (
-                    <div key={offer._id} className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                      <p className="font-medium text-gray-900 mb-1">{offer.FreelancerID?.Name}</p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-[#F7931E] font-semibold">{offer.BidAmount} SAR</span>
-                        <span className="text-gray-600">{offer.EstimatedTime}</span>
+          {showSidebar && (
+            <div className="space-y-6">
+              {canManageTask && shortlistedOffers.length > 0 && (
+                <Card className="border-[#F7931E]">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Star className="h-5 w-5 text-[#F7931E] fill-[#F7931E]" />
+                      Shortlisted ({shortlistedOffers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {shortlistedOffers.map((offer) => (
+                      <div key={offer._id} className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <p className="font-medium text-gray-900 mb-1">{offer.FreelancerID?.Name}</p>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#F7931E] font-semibold">{offer.BidAmount} SAR</span>
+                          <span className="text-gray-600">{offer.EstimatedTime}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  <Button
-                    className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
-                    onClick={() => navigate(`/client/compare-offers/${taskId}`)}
-                  >
-                    Compare Shortlisted
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                    ))}
+                    <Button
+                      className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
+                      onClick={() => navigate(`/client/compare-offers/${taskId}`)}
+                    >
+                      Compare Shortlisted
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
-            {canManageTask ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {offers.length > 0 && (
+              {canManageTask ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {offers.length > 0 && (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => navigate(`/client/compare-offers/${taskId}`)}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Compare All Offers
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       className="w-full justify-start"
-                      onClick={() => navigate(`/client/compare-offers/${taskId}`)}
+                      onClick={() => navigate(`/client/edit-task/${taskId}`)}
                     >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Compare All Offers
+                      <FileText className="h-4 w-4 mr-2" />
+                      Edit Task
                     </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => navigate(`/client/edit-task/${taskId}`)}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Edit Task
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-red-600 hover:text-red-700"
-                    onClick={handleCloseTask}
-                  >
-                    <span>Close Task</span>
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Task Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => navigate("/provider/tasks")}
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Task List
-                  </Button>
-                  {isProviderUser && task.Status === "open" && (
                     <Button
-                      className="w-full justify-start bg-[#F7931E] hover:bg-[#F7931E]/90"
+                      variant="outline"
+                      className="w-full justify-start text-red-600 hover:text-red-700"
+                      onClick={handleCloseTask}
+                    >
+                      <span>Close Task</span>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Task Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
                       onClick={() => navigate("/provider/tasks")}
                     >
-                      Submit Offer From List
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Task List
                     </Button>
-                  )}
+                    {isProviderUser && task.Status === "open" && (
+                      <Button
+                        className="w-full justify-start bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={() => navigate("/provider/tasks")}
+                      >
+                        Submit Offer From List
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="bg-blue-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-lg">Tips</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    {canManageTask ? (
+                      <>
+                        <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Use shortlist to mark promising offers</span></li>
+                        <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Check provider ratings and reviews</span></li>
+                        <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Message freelancers to clarify details</span></li>
+                        <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Compare shortlisted offers before deciding</span></li>
+                      </>
+                    ) : (
+                      <>
+                        <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Read the task requirements before sending an offer</span></li>
+                        <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Use a clear price and realistic delivery time</span></li>
+                        <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Client proposals are private and only visible to the client</span></li>
+                      </>
+                    )}
+                  </ul>
                 </CardContent>
               </Card>
-            )}
-
-            <Card className="bg-blue-50 border-blue-200">
-              <CardHeader>
-                <CardTitle className="text-lg">Tips</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  {canManageTask ? (
-                    <>
-                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Use shortlist to mark promising offers</span></li>
-                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Check provider ratings and reviews</span></li>
-                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Message freelancers to clarify details</span></li>
-                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Compare shortlisted offers before deciding</span></li>
-                    </>
-                  ) : (
-                    <>
-                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Read the task requirements before sending an offer</span></li>
-                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Use a clear price and realistic delivery time</span></li>
-                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Client proposals are private and only visible to the client</span></li>
-                    </>
-                  )}
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
