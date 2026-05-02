@@ -87,28 +87,28 @@ export function Footer() {
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a
-                  href="#"
+                <Link
+                  to="/support/help"
                   className="text-gray-400 hover:text-[#F7931E] transition-colors"
                 >
                   Help Center
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  to="/support/safety"
                   className="text-gray-400 hover:text-[#F7931E] transition-colors"
                 >
                   Safety Guidelines
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  to="/support/contact"
                   className="text-gray-400 hover:text-[#F7931E] transition-colors"
                 >
                   Contact Us
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

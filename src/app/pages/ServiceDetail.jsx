@@ -22,6 +22,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import {
+  createReport,
   createServiceOrder,
   getServiceById,
   getServiceReviews,
@@ -37,6 +38,7 @@ export function ServiceDetail() {
   const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOrdering, setIsOrdering] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -74,6 +76,51 @@ export function ServiceDetail() {
       toast.error(err.message || "Failed to order service.");
     } finally {
       setIsOrdering(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = `${service.Title} on Mahamma`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: shareText,
+          text: service.Description,
+          url: shareUrl,
+        });
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Service link copied.");
+    } catch (err) {
+      if (err?.name !== "AbortError") {
+        toast.error("Could not share this service.");
+      }
+    }
+  };
+
+  const handleReportService = async () => {
+    if (!userInfo) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setIsReporting(true);
+      await createReport({
+        RespondentID: service.ProviderID?._id,
+        Type: "Other",
+        Severity: "medium",
+        Description: `Service report submitted for "${service.Title}" by ${userInfo.Name || "a user"}. Please review this service listing and provider profile.`,
+      });
+      toast.success("Service report sent to the support team.");
+    } catch (err) {
+      toast.error(err.message || "Failed to report service.");
+    } finally {
+      setIsReporting(false);
     }
   };
 
@@ -287,13 +334,24 @@ export function ServiceDetail() {
             </Card>
 
             <div className="flex justify-between px-2">
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-[#F7931E]">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-[#F7931E]"
+                onClick={handleShare}
+              >
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-red-500"
+                onClick={handleReportService}
+                disabled={isReporting}
+              >
                 <AlertTriangle className="h-4 w-4 mr-2" />
-                Report
+                {isReporting ? "Reporting..." : "Report"}
               </Button>
             </div>
           </div>

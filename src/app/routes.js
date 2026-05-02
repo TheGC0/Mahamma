@@ -15,6 +15,7 @@ import { ProviderProfile } from "./pages/ProviderProfile";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { Messages } from "./pages/Messages";
 import { ServiceDetail } from "./pages/ServiceDetail";
+import { SupportPage } from "./pages/SupportPage";
 import { NotFound } from "./pages/NotFound";
 
 export const router = createBrowserRouter([
@@ -89,6 +90,18 @@ export const router = createBrowserRouter([
   {
     path: "/messages",
     Component: Messages,
+  },
+  {
+    path: "/support/help",
+    Component: SupportPage,
+  },
+  {
+    path: "/support/safety",
+    Component: SupportPage,
+  },
+  {
+    path: "/support/contact",
+    Component: SupportPage,
   },
   {
     path: "*",
