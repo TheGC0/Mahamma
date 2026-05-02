@@ -537,6 +537,62 @@ Delete a service.
 
 ---
 
+### 3.1 Service Orders — `/api/services/:serviceId/orders` and `/api/service-orders`
+
+Service orders are created when a client clicks **Order Now** on a listed service.
+
+#### POST `/api/services/:serviceId/orders` 🔒 *(client role required)*
+Create a direct order for a provider's service.
+
+**Request body:**
+```json
+{
+  "Message": "Please start with the logo concept we discussed."
+}
+```
+
+**Success response (201):**
+```json
+{
+  "_id": "6650...",
+  "ServiceID": { "Title": "Professional Logo Design", "Price": 80 },
+  "ClientID": { "Name": "Demo Client", "Email": "client@kfupm.edu.sa" },
+  "ProviderID": { "Name": "Demo Provider", "Email": "provider@kfupm.edu.sa" },
+  "Price": 80,
+  "DeliveryTime": "3 days",
+  "Status": "pending"
+}
+```
+
+**Business rules:** Clients cannot order their own services, and duplicate active orders for the same service are blocked.
+
+---
+
+#### GET `/api/service-orders` 🔒
+Get service orders for the logged-in user. Clients see their own orders; providers see orders for their services.
+
+**Success response (200):** Array of service order objects.
+
+---
+
+#### PATCH `/api/service-orders/:id/status` 🔒
+Update a service order status.
+
+**Request body:**
+```json
+{ "Status": "active" }
+```
+
+| Status | Who can set it | Meaning |
+|---|---|---|
+| active | Provider | Provider accepted the order |
+| completed | Client | Client marked the order complete |
+| cancelled | Client, provider, admin | Order was cancelled |
+
+**Success response (200):** Updated service order object.
+
+---
+
 ### 4. Proposals — `/api/tasks/:taskId/proposals` and `/api/proposals`
 
 #### GET `/api/tasks/:taskId/proposals` 🔒 *(task owner or admin)*

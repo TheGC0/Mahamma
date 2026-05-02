@@ -21,7 +21,11 @@ import {
   Share2,
   AlertTriangle,
 } from "lucide-react";
-import { getServiceById, getServiceReviews } from "../../lib/api";
+import {
+  createServiceOrder,
+  getServiceById,
+  getServiceReviews,
+} from "../../lib/api";
 import { toast } from "sonner";
 
 export function ServiceDetail() {
@@ -32,6 +36,7 @@ export function ServiceDetail() {
   const [service, setService] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOrdering, setIsOrdering] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -53,10 +58,23 @@ export function ServiceDetail() {
     fetchData();
   }, [id]);
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
     if (!userInfo) { navigate("/login"); return; }
-    toast.success("Order request sent! The provider will contact you soon.");
-    setTimeout(() => navigate("/client/dashboard"), 2000);
+    if (userInfo.Role !== "client") {
+      toast.error("Only client accounts can order services.");
+      return;
+    }
+
+    try {
+      setIsOrdering(true);
+      await createServiceOrder(id);
+      toast.success("Service order sent to the provider.");
+      navigate("/client/dashboard");
+    } catch (err) {
+      toast.error(err.message || "Failed to order service.");
+    } finally {
+      setIsOrdering(false);
+    }
   };
 
   if (isLoading) {
@@ -209,8 +227,9 @@ export function ServiceDetail() {
                   <Button
                     className="w-full h-12 text-lg bg-[#F7931E] hover:bg-[#F7931E]/90"
                     onClick={handleOrder}
+                    disabled={isOrdering}
                   >
-                    Order Now
+                    {isOrdering ? "Sending Order..." : "Order Now"}
                   </Button>
                   <Button
                     variant="outline"

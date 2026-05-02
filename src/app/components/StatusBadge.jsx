@@ -13,6 +13,11 @@ export function StatusBadge({ status }) {
           label: "In Progress", 
           className: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50" 
         };
+      case "active":
+        return {
+          label: "Active",
+          className: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50"
+        };
       case "delivered":
         return { 
           label: "Delivered", 

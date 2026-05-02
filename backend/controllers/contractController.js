@@ -144,9 +144,9 @@ export const updateContractStatus = async (req, res, next) => {
   try {
     const { Status } = req.body;
 
-    if (!["completed", "cancelled"].includes(Status)) {
+    if (!["delivered", "completed", "cancelled"].includes(Status)) {
       res.status(400);
-      throw new Error("Status must be 'completed' or 'cancelled'");
+      throw new Error("Status must be 'delivered', 'completed', or 'cancelled'");
     }
 
     const contract = await Contract.findById(req.params.id);
@@ -165,9 +165,19 @@ export const updateContractStatus = async (req, res, next) => {
       throw new Error("Not authorized to update this contract");
     }
 
-    if (contract.Status !== "active") {
+    if (["completed", "cancelled"].includes(contract.Status)) {
       res.status(400);
-      throw new Error("Only active contracts can be updated");
+      throw new Error("Completed or cancelled contracts cannot be updated");
+    }
+
+    if (Status === "delivered" && contract.Status !== "active") {
+      res.status(400);
+      throw new Error("Only active contracts can be marked as delivered");
+    }
+
+    if (Status === "completed" && !["active", "delivered"].includes(contract.Status)) {
+      res.status(400);
+      throw new Error("Only active or delivered contracts can be completed");
     }
 
     contract.Status = Status;
@@ -188,9 +198,15 @@ export const updateContractStatus = async (req, res, next) => {
       userId: otherUserId,
       type: "contract",
       title:
-        Status === "completed" ? "Contract completed" : "Contract cancelled",
+        Status === "delivered"
+          ? "Work delivered"
+          : Status === "completed"
+          ? "Contract completed"
+          : "Contract cancelled",
       description:
-        Status === "completed"
+        Status === "delivered"
+          ? "A contract you are part of was marked delivered."
+          : Status === "completed"
           ? "A contract you are part of was marked completed."
           : "A contract you are part of was cancelled.",
       actionUrl: `/client/jobs/${contract._id}`,

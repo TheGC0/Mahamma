@@ -25,8 +25,15 @@ import {
   Briefcase,
   TrendingUp,
   Eye,
+  MessageSquare,
 } from "lucide-react";
-import { getServices, getMyContracts, updateContractStatus } from "../../lib/api";
+import {
+  getMyContracts,
+  getServiceOrders,
+  getServices,
+  updateContractStatus,
+  updateServiceOrderStatus,
+} from "../../lib/api";
 
 const DELIVERED_DEADLINE_LABEL = "Awaiting approval";
 
@@ -36,6 +43,7 @@ export function ProviderDashboard() {
 
   const [myServices, setMyServices] = useState([]);
   const [activeJobs, setActiveJobs] = useState([]);
+  const [serviceOrders, setServiceOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -43,12 +51,14 @@ export function ProviderDashboard() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [services, contracts] = await Promise.all([
+        const [services, contracts, orders] = await Promise.all([
           getServices({ providerId: userInfo._id }),
           getMyContracts(),
+          getServiceOrders(),
         ]);
         setMyServices(services);
         setActiveJobs(contracts);
+        setServiceOrders(orders);
       } catch (err) {
         console.error(err);
       } finally {
@@ -71,11 +81,24 @@ export function ProviderDashboard() {
     }
   };
 
+  const handleServiceOrderStatus = async (orderId, Status) => {
+    try {
+      const updated = await updateServiceOrderStatus(orderId, Status);
+      setServiceOrders((orders) =>
+        orders.map((order) => (order._id === orderId ? updated : order)),
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const completedJobs = activeJobs.filter((j) => j.Status === "completed").length;
   const totalEarnings = activeJobs
     .filter((j) => j.Status === "completed")
     .reduce((sum, j) => sum + (j.AgreedAmount || 0), 0);
-  const activeOrders = activeJobs.filter((j) => j.Status === "in_progress" || j.Status === "delivered").length;
+  const activeOrders =
+    activeJobs.filter((j) => j.Status === "in_progress" || j.Status === "delivered").length +
+    serviceOrders.filter((order) => order.Status === "pending" || order.Status === "active").length;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -218,55 +241,120 @@ export function ProviderDashboard() {
           <TabsContent value="jobs" className="space-y-4">
             {isLoading ? (
               <div className="text-center py-8 text-gray-500">Loading...</div>
-            ) : activeJobs.length === 0 ? (
+            ) : activeJobs.length === 0 && serviceOrders.length === 0 ? (
               <Card className="text-center py-12">
                 <CardContent>
                   <p className="text-gray-500">No active jobs yet</p>
-                  <p className="text-sm text-gray-400 mt-2">Submit proposals on task requests to get hired</p>
+                  <p className="text-sm text-gray-400 mt-2">Submit proposals or receive service orders to get hired</p>
                 </CardContent>
               </Card>
             ) : (
-              activeJobs.map((job) => (
-                <Card key={job._id} className="hover:shadow-md transition-all">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <CardTitle className="text-xl">
-                            {job.ProposalID?.TaskID?.Title || job.TaskID?.Title || "Job"}
-                          </CardTitle>
-                          <StatusBadge status={job.Status} />
+              <>
+                {serviceOrders.map((order) => (
+                  <Card key={order._id} className="hover:shadow-md transition-all">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <CardTitle className="text-xl">
+                              {order.ServiceID?.Title || "Service Order"}
+                            </CardTitle>
+                            <StatusBadge status={order.Status} />
+                          </div>
+                          <CardDescription>
+                            Client: {order.ClientID?.Name || "Client"}
+                          </CardDescription>
                         </div>
-                        <CardDescription>
-                          Client: {job.ClientID?.Name || job.ProposalID?.TaskID?.ClientID?.Name}
-                        </CardDescription>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-[#F7931E]">{order.Price} SAR</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-[#F7931E]">{job.AgreedAmount} SAR</p>
+                    </CardHeader>
+
+                    <CardContent>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm text-gray-600">
+                          Delivery: {order.DeliveryTime}
+                        </span>
                       </div>
-                    </div>
-                  </CardHeader>
 
-                  <CardContent>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm text-gray-600">
-                        Deadline: {job.Status === "delivered" ? DELIVERED_DEADLINE_LABEL : new Date(job.DeliveryDate || job.Deadline).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button className="bg-[#F7931E] hover:bg-[#F7931E]/90" onClick={() => navigate(`/client/jobs/${job._id}`)}>
-                        Open Workspace
-                      </Button>
-                      {job.Status === "in_progress" && (
-                        <Button variant="outline" onClick={() => handleMarkAsDelivered(job._id)}>
-                          Mark as Delivered
+                      <div className="flex gap-2 flex-wrap">
+                        {order.Status === "pending" && (
+                          <Button
+                            className="bg-[#F7931E] hover:bg-[#F7931E]/90"
+                            onClick={() => handleServiceOrderStatus(order._id, "active")}
+                          >
+                            Accept Order
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            navigate(
+                              order.ClientID?._id
+                                ? `/messages?user=${order.ClientID._id}`
+                                : "/messages",
+                            )
+                          }
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Message Client
                         </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                        {(order.Status === "pending" || order.Status === "active") && (
+                          <Button
+                            variant="outline"
+                            onClick={() => handleServiceOrderStatus(order._id, "cancelled")}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {activeJobs.map((job) => (
+                  <Card key={job._id} className="hover:shadow-md transition-all">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <CardTitle className="text-xl">
+                              {job.ProposalID?.TaskID?.Title || job.TaskID?.Title || "Job"}
+                            </CardTitle>
+                            <StatusBadge status={job.Status} />
+                          </div>
+                          <CardDescription>
+                            Client: {job.ClientID?.Name || job.ProposalID?.TaskID?.ClientID?.Name}
+                          </CardDescription>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-[#F7931E]">{job.AgreedAmount} SAR</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm text-gray-600">
+                          Deadline: {job.Status === "delivered" ? DELIVERED_DEADLINE_LABEL : new Date(job.DeliveryDate || job.Deadline).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button className="bg-[#F7931E] hover:bg-[#F7931E]/90" onClick={() => navigate(`/client/jobs/${job._id}`)}>
+                          Open Workspace
+                        </Button>
+                        {job.Status === "in_progress" && (
+                          <Button variant="outline" onClick={() => handleMarkAsDelivered(job._id)}>
+                            Mark as Delivered
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
             )}
           </TabsContent>
         </Tabs>

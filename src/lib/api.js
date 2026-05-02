@@ -134,6 +134,31 @@ export const getProviderReviews = async (providerId) => {
   return handleResponse(res);
 };
 
+export const createServiceOrder = async (serviceId, orderData = {}) => {
+  const res = await fetch(`${API_URL}/services/${serviceId}/orders`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(orderData),
+  });
+  return handleResponse(res);
+};
+
+export const getServiceOrders = async () => {
+  const res = await fetch(`${API_URL}/service-orders`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(res);
+};
+
+export const updateServiceOrderStatus = async (id, Status) => {
+  const res = await fetch(`${API_URL}/service-orders/${id}/status`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ Status }),
+  });
+  return handleResponse(res);
+};
+
 // ─── PROPOSALS ───────────────────────────────────────────────────────────────
 
 export const getProposalsByTask = async (taskId) => {
