@@ -40,6 +40,9 @@ export function ServiceDetail() {
   const [isOrdering, setIsOrdering] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [error, setError] = useState("");
+  const providerId = service?.ProviderID?._id || "";
+  const currentUserId = userInfo?._id || userInfo?.id || "";
+  const isOwner = Boolean(providerId && currentUserId && String(providerId) === String(currentUserId));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -147,9 +150,13 @@ export function ServiceDetail() {
       <Header isAuthenticated={!!userInfo} userRole={userInfo?.Role} userName={userInfo?.Name} />
 
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/services")} className="mb-4">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(isOwner ? "/provider/dashboard" : "/services")}
+          className="mb-4"
+        >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Services
+          {isOwner ? "Back to Dashboard" : "Back to Services"}
         </Button>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -271,29 +278,53 @@ export function ServiceDetail() {
                 </div>
 
                 <div className="space-y-3">
-                  <Button
-                    className="w-full h-12 text-lg bg-[#F7931E] hover:bg-[#F7931E]/90"
-                    onClick={handleOrder}
-                    disabled={isOrdering}
-                  >
-                    {isOrdering ? "Sending Order..." : "Order Now"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-12"
-                    onClick={() =>
-                      userInfo
-                        ? navigate(
-                            service.ProviderID?._id
-                              ? `/messages?user=${service.ProviderID._id}`
-                              : "/messages",
-                          )
-                        : navigate("/login")
-                    }
-                  >
-                    <MessageSquare className="h-5 w-5 mr-2" />
-                    Contact Provider
-                  </Button>
+                  {isOwner ? (
+                    <>
+                      <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+                        This is your service listing. Clients see ordering options here.
+                      </div>
+                      <Button
+                        className="w-full h-12 text-lg bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={() => navigate("/provider/dashboard")}
+                      >
+                        Manage Orders
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full h-12"
+                        onClick={handleShare}
+                      >
+                        <Share2 className="h-5 w-5 mr-2" />
+                        Share Service
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        className="w-full h-12 text-lg bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={handleOrder}
+                        disabled={isOrdering}
+                      >
+                        {isOrdering ? "Sending Order..." : "Order Now"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full h-12"
+                        onClick={() =>
+                          userInfo
+                            ? navigate(
+                                service.ProviderID?._id
+                                  ? `/messages?user=${service.ProviderID._id}`
+                                  : "/messages",
+                              )
+                            : navigate("/login")
+                        }
+                      >
+                        <MessageSquare className="h-5 w-5 mr-2" />
+                        Contact Provider
+                      </Button>
+                    </>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t">
@@ -343,16 +374,18 @@ export function ServiceDetail() {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-red-500"
-                onClick={handleReportService}
-                disabled={isReporting}
-              >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                {isReporting ? "Reporting..." : "Report"}
-              </Button>
+              {!isOwner && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-red-500"
+                  onClick={handleReportService}
+                  disabled={isReporting}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  {isReporting ? "Reporting..." : "Report"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
