@@ -24,6 +24,33 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
+  const normalizedRole = (userRole || "").toLowerCase();
+  const isAdmin = normalizedRole === "admin";
+  const isProvider = normalizedRole === "provider" || normalizedRole === "freelancer";
+  const dashboardPath = isAdmin
+    ? "/admin"
+    : isProvider
+      ? "/provider/dashboard"
+      : "/client/dashboard";
+  const navItems = !isAuthenticated
+    ? [
+        { label: "Browse Services", path: "/services" },
+        { label: "Find Tasks", path: "/provider/tasks" },
+        { label: "Post a Task", path: "/client/post-task" },
+      ]
+    : isAdmin
+      ? [{ label: "Admin Dashboard", path: "/admin" }]
+      : isProvider
+        ? [
+            { label: "Find Tasks", path: "/provider/tasks" },
+            { label: "Create Service", path: "/provider/create-service" },
+            { label: "My Dashboard", path: "/provider/dashboard" },
+          ]
+        : [
+            { label: "Browse Services", path: "/services" },
+            { label: "Post a Task", path: "/client/post-task" },
+            { label: "My Dashboard", path: "/client/dashboard" },
+          ];
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -83,27 +110,16 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
           </button>
 
           <nav className="hidden md:flex items-center gap-6">
-            <button
-              type="button"
-              onClick={() => handleNavigate("/services")}
-              className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors"
-            >
-              Browse Services
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavigate("/provider/tasks")}
-              className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors"
-            >
-              Find Tasks
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavigate("/client/post-task")}
-              className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors"
-            >
-              Post a Task
-            </button>
+            {navItems.map((item) => (
+              <button
+                key={item.path}
+                type="button"
+                onClick={() => handleNavigate(item.path)}
+                className="text-sm text-gray-700 hover:text-[#F7931E] transition-colors"
+              >
+                {item.label}
+              </button>
+            ))}
           </nav>
 
           <div className="flex items-center gap-3">
@@ -141,11 +157,7 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
                     <DropdownMenuItem
                       onClick={() =>
                         handleNavigate(
-                          userRole === "admin"
-                            ? "/admin"
-                            : userRole === "provider"
-                              ? "/provider/dashboard"
-                              : "/client/dashboard",
+                          dashboardPath,
                         )
                       }
                     >
@@ -205,27 +217,16 @@ export function Header({ isAuthenticated = false, userRole, userName }) {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <nav className="flex flex-col space-y-4">
-              <button
-                type="button"
-                onClick={() => handleNavigate("/services")}
-                className="text-sm text-left text-gray-700 hover:text-[#F7931E] transition-colors py-2"
-              >
-                Browse Services
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNavigate("/provider/tasks")}
-                className="text-sm text-left text-gray-700 hover:text-[#F7931E] transition-colors py-2"
-              >
-                Find Tasks
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNavigate("/client/post-task")}
-                className="text-sm text-left text-gray-700 hover:text-[#F7931E] transition-colors py-2"
-              >
-                Post a Task
-              </button>
+              {navItems.map((item) => (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => handleNavigate(item.path)}
+                  className="text-sm text-left text-gray-700 hover:text-[#F7931E] transition-colors py-2"
+                >
+                  {item.label}
+                </button>
+              ))}
 
               {!isAuthenticated && (
                 <>

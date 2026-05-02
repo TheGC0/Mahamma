@@ -68,9 +68,19 @@ export function JobWorkspace() {
   const [isSendingWorkspaceMessage, setIsSendingWorkspaceMessage] = useState(false);
   const [isSendingHelpRequest, setIsSendingHelpRequest] = useState(false);
 
-  const isProviderUser = userInfo?.Role === "provider";
   const providerId = job?.ProviderID?._id || job?.ProposalID?.FreelancerID?._id || "";
   const clientId = job?.ClientID?._id || "";
+  const currentUserId = userInfo?._id || userInfo?.id || "";
+  const currentRole = (userInfo?.Role || userInfo?.role || "").toLowerCase();
+  const roleSaysProvider = currentRole === "provider" || currentRole === "freelancer";
+  const roleSaysClient = currentRole === "client";
+  const idsMatch = (left, right) => Boolean(left && right && String(left) === String(right));
+  const isProviderUser =
+    idsMatch(providerId, currentUserId) ||
+    (roleSaysProvider && !idsMatch(clientId, currentUserId));
+  const isClientUser =
+    idsMatch(clientId, currentUserId) ||
+    (roleSaysClient && !idsMatch(providerId, currentUserId));
   const otherUserId = isProviderUser ? clientId : providerId;
   const providerName = job?.ProviderID?.Name || job?.ProposalID?.FreelancerID?.Name || "Provider";
   const clientName = job?.ClientID?.Name || "Client";
@@ -352,13 +362,13 @@ export function JobWorkspace() {
                     Current progress: {job.Status === "active" ? "In Progress" : job.Status}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {userInfo?.Role === "provider"
+                    {isProviderUser
                       ? "Update the job when the work is ready for client review."
                       : "The freelancer controls delivery; you complete it after review."}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {userInfo?.Role === "provider" && job.Status === "active" && (
+                  {isProviderUser && job.Status === "active" && (
                     <Button
                       className="bg-[#F7931E] hover:bg-[#F7931E]/90"
                       onClick={() => handleUpdateProgress("delivered")}
@@ -480,13 +490,13 @@ export function JobWorkspace() {
                     Delivery Complete
                   </CardTitle>
                   <CardDescription>
-                    {userInfo?.Role === "client"
+                    {isClientUser
                       ? "The freelancer has marked this job as delivered. Please review the work and provide feedback."
                       : "The work has been delivered and is waiting for the client to review it."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {userInfo?.Role === "client" ? (
+                  {isClientUser ? (
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button className="bg-green-600 hover:bg-green-700">
