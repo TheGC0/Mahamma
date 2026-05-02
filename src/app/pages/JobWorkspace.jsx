@@ -41,8 +41,10 @@ import { Label } from "../components/ui/label";
 import { toast } from "sonner";
 import {
   createConversation,
+  createReport,
   createReview,
   getContractById,
+  getConversationMessages,
   sendConversationMessage,
   updateContractStatus,
 } from "../../lib/api";
@@ -60,6 +62,22 @@ export function JobWorkspace() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
   const [message, setMessage] = useState("");
+  const [workspaceConversationId, setWorkspaceConversationId] = useState("");
+  const [workspaceMessages, setWorkspaceMessages] = useState([]);
+  const [isLoadingWorkspaceMessages, setIsLoadingWorkspaceMessages] = useState(false);
+  const [isSendingWorkspaceMessage, setIsSendingWorkspaceMessage] = useState(false);
+  const [isSendingHelpRequest, setIsSendingHelpRequest] = useState(false);
+
+  const isProviderUser = userInfo?.Role === "provider";
+  const providerId = job?.ProviderID?._id || job?.ProposalID?.FreelancerID?._id || "";
+  const clientId = job?.ClientID?._id || "";
+  const otherUserId = isProviderUser ? clientId : providerId;
+  const providerName = job?.ProviderID?.Name || job?.ProposalID?.FreelancerID?.Name || "Provider";
+  const clientName = job?.ClientID?.Name || "Client";
+  const partnerName = isProviderUser ? clientName : providerName;
+  const partnerRoleLabel = isProviderUser ? "client" : "freelancer";
+  const taskTitle = job?.TaskID?.Title || job?.ProposalID?.TaskID?.Title || "Job";
+  const jobDeliveryDate = job?.DeliveryDate || job?.Deadline;
 
   useEffect(() => {
     if (!userInfo) { navigate("/login"); return; }
@@ -76,6 +94,44 @@ export function JobWorkspace() {
     };
     fetchData();
   }, [jobId]);
+
+  useEffect(() => {
+    if (!userInfo || !otherUserId) {
+      setWorkspaceConversationId("");
+      setWorkspaceMessages([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadWorkspaceMessages = async ({ showLoader = false } = {}) => {
+      try {
+        if (showLoader) setIsLoadingWorkspaceMessages(true);
+        const conversation = await createConversation(otherUserId);
+        const messages = await getConversationMessages(conversation._id);
+        if (!isMounted) return;
+
+        setWorkspaceConversationId(conversation._id);
+        setWorkspaceMessages(messages);
+      } catch (err) {
+        if (isMounted) {
+          toast.error(err.message || "Failed to load workspace messages.");
+        }
+      } finally {
+        if (isMounted && showLoader) setIsLoadingWorkspaceMessages(false);
+      }
+    };
+
+    loadWorkspaceMessages({ showLoader: true });
+    const intervalId = window.setInterval(() => {
+      loadWorkspaceMessages();
+    }, 10000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [otherUserId, userInfo?._id]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -153,19 +209,61 @@ export function JobWorkspace() {
 
   const handleSendWorkspaceMessage = async () => {
     const body = message.trim();
-    const otherUserId =
-      userInfo?.Role === "provider" ? job.ClientID?._id : job.ProviderID?._id;
 
-    if (!body || !otherUserId) return;
+    if (!body || !otherUserId || isSendingWorkspaceMessage) return;
 
     try {
-      const conversation = await createConversation(otherUserId);
-      await sendConversationMessage(conversation._id, body);
+      setIsSendingWorkspaceMessage(true);
+      let conversationId = workspaceConversationId;
+      if (!conversationId) {
+        const conversation = await createConversation(otherUserId);
+        conversationId = conversation._id;
+        setWorkspaceConversationId(conversation._id);
+      }
+      const sent = await sendConversationMessage(conversationId, body);
+      setWorkspaceMessages((current) => [...current, sent]);
       setMessage("");
       toast.success("Message sent.");
-      navigate(`/messages?conversation=${conversation._id}`);
     } catch (err) {
       toast.error(err.message || "Failed to send message.");
+    } finally {
+      setIsSendingWorkspaceMessage(false);
+    }
+  };
+
+  const handleReportIssue = async () => {
+    try {
+      setIsSendingHelpRequest(true);
+      await createReport({
+        RespondentID: otherUserId || undefined,
+        ContractID: job._id,
+        Type: "Other",
+        Severity: "medium",
+        Description: `Issue reported from workspace "${taskTitle}" by ${userInfo?.Name || "a user"}. Please review this contract and contact the user if more information is needed.`,
+      });
+      toast.success("Report sent to the support team.");
+    } catch (err) {
+      toast.error(err.message || "Failed to send report.");
+    } finally {
+      setIsSendingHelpRequest(false);
+    }
+  };
+
+  const handleContactSupport = async () => {
+    try {
+      setIsSendingHelpRequest(true);
+      await createReport({
+        RespondentID: otherUserId || undefined,
+        ContractID: job._id,
+        Type: "Other",
+        Severity: "low",
+        Description: `Support requested from workspace "${taskTitle}" by ${userInfo?.Name || "a user"}. The user needs help with this job workspace.`,
+      });
+      toast.success("Support request sent.");
+    } catch (err) {
+      toast.error(err.message || "Failed to contact support.");
+    } finally {
+      setIsSendingHelpRequest(false);
     }
   };
 
@@ -187,24 +285,23 @@ export function JobWorkspace() {
     );
   }
 
-  const providerName = job.ProviderID?.Name || job.ProposalID?.FreelancerID?.Name || "Provider";
-  const clientName = job.ClientID?.Name || "Client";
-  const taskTitle = job.TaskID?.Title || job.ProposalID?.TaskID?.Title || "Job";
-  const jobDeliveryDate = job.DeliveryDate || job.Deadline;
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header isAuthenticated={!!userInfo} userRole={userInfo?.Role} userName={userInfo?.Name} />
 
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8">
-          <Button variant="ghost" onClick={() => navigate("/client/dashboard")} className="mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(isProviderUser ? "/provider/dashboard" : "/client/dashboard")}
+            className="mb-4"
+          >
             ← Back to Dashboard
           </Button>
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{taskTitle}</h1>
-              <p className="text-gray-600">Working with {providerName}</p>
+              <p className="text-gray-600">Working with {partnerName}</p>
             </div>
             <StatusBadge status={job.Status} />
           </div>
@@ -300,27 +397,76 @@ export function JobWorkspace() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Messages</CardTitle>
-                    <CardDescription>Communicate with your freelancer</CardDescription>
+                    <CardDescription>Communicate with your {partnerRoleLabel}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4 mb-4 max-h-[300px] overflow-y-auto p-4 bg-gray-50 rounded-lg">
-                      <p className="text-center text-sm text-gray-400">No messages yet. Start the conversation!</p>
+                      {isLoadingWorkspaceMessages ? (
+                        <p className="text-center text-sm text-gray-400">Loading messages...</p>
+                      ) : workspaceMessages.length === 0 ? (
+                        <p className="text-center text-sm text-gray-400">No messages yet. Start the conversation!</p>
+                      ) : (
+                        workspaceMessages.map((workspaceMessage) => {
+                          const senderId = workspaceMessage.SenderID?._id || workspaceMessage.SenderID;
+                          const isMine = senderId === userInfo?._id;
+
+                          return (
+                            <div key={workspaceMessage._id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                              <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${isMine ? "bg-[#F7931E] text-white" : "bg-white border border-gray-200 text-gray-900"}`}>
+                                {!isMine && (
+                                  <p className="mb-1 text-xs font-semibold text-gray-500">
+                                    {workspaceMessage.SenderID?.Name || partnerName}
+                                  </p>
+                                )}
+                                <p className="whitespace-pre-wrap break-words">{workspaceMessage.Body}</p>
+                                <p className={`mt-1 text-right text-xs ${isMine ? "text-white/70" : "text-gray-400"}`}>
+                                  {new Date(workspaceMessage.createdAt).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Textarea
                         placeholder="Type your message..."
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" && !event.shiftKey) {
+                            event.preventDefault();
+                            handleSendWorkspaceMessage();
+                          }
+                        }}
                         rows={2}
                       />
                       <Button
                         className="bg-[#F7931E] hover:bg-[#F7931E]/90"
                         onClick={handleSendWorkspaceMessage}
-                        disabled={!message.trim()}
+                        disabled={!message.trim() || !otherUserId || isSendingWorkspaceMessage}
                       >
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
+                    {otherUserId && (
+                      <Button
+                        variant="link"
+                        className="mt-2 h-auto p-0 text-[#F7931E]"
+                        onClick={() =>
+                          navigate(
+                            workspaceConversationId
+                              ? `/messages?conversation=${workspaceConversationId}`
+                              : `/messages?user=${otherUserId}`,
+                          )
+                        }
+                      >
+                        Open full chat
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -457,23 +603,32 @@ export function JobWorkspace() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Provider</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{isProviderUser ? "Client" : "Provider"}</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex items-start gap-3 mb-4">
                   <div className="bg-gradient-to-br from-[#F7931E] to-orange-600 rounded-full p-4 flex items-center justify-center">
-                    <span className="text-xl font-bold text-white">{providerName[0]}</span>
+                    <span className="text-xl font-bold text-white">{partnerName[0]}</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg">{providerName}</h3>
-                    <StarRating rating={job.ProviderID?.Rating || 0} />
+                    <h3 className="font-semibold text-lg">{partnerName}</h3>
+                    {!isProviderUser && <StarRating rating={job.ProviderID?.Rating || 0} />}
                   </div>
                 </div>
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => navigate(`/providers/${job.ProviderID?._id}`)}
+                  disabled={isProviderUser ? !clientId : !providerId}
+                  onClick={() =>
+                    isProviderUser
+                      ? navigate(
+                          workspaceConversationId
+                            ? `/messages?conversation=${workspaceConversationId}`
+                            : `/messages?user=${clientId}`,
+                        )
+                      : navigate(`/providers/${providerId}`)
+                  }
                 >
-                  View Profile
+                  {isProviderUser ? "Message Client" : "View Profile"}
                 </Button>
               </CardContent>
             </Card>
@@ -484,7 +639,8 @@ export function JobWorkspace() {
                 <Button
                   variant="outline"
                   className="w-full justify-start bg-white"
-                  onClick={() => toast.info("Report has been sent to our safety team.")}
+                  onClick={handleReportIssue}
+                  disabled={isSendingHelpRequest}
                 >
                   <AlertTriangle className="h-4 w-4 mr-2" />
                   Report an Issue
@@ -492,7 +648,8 @@ export function JobWorkspace() {
                 <Button
                   variant="outline"
                   className="w-full justify-start bg-white"
-                  onClick={() => toast.info("Connecting to support...")}
+                  onClick={handleContactSupport}
+                  disabled={isSendingHelpRequest}
                 >
                   <MessageIcon className="h-4 w-4 mr-2" />
                   Contact Support
