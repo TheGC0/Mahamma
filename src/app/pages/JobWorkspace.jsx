@@ -67,6 +67,14 @@ export function JobWorkspace() {
   const [isLoadingWorkspaceMessages, setIsLoadingWorkspaceMessages] = useState(false);
   const [isSendingWorkspaceMessage, setIsSendingWorkspaceMessage] = useState(false);
   const [isSendingHelpRequest, setIsSendingHelpRequest] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
+  const [reportForm, setReportForm] = useState({
+    Type: "Quality Issue",
+    Severity: "medium",
+    Description: "",
+  });
+  const [supportMessage, setSupportMessage] = useState("");
 
   const providerId = job?.ProviderID?._id || job?.ProposalID?.FreelancerID?._id || "";
   const clientId = job?.ClientID?._id || "";
@@ -242,15 +250,23 @@ export function JobWorkspace() {
   };
 
   const handleReportIssue = async () => {
+    const description = reportForm.Description.trim();
+    if (description.length < 20) {
+      toast.error("Please describe the issue in at least 20 characters.");
+      return;
+    }
+
     try {
       setIsSendingHelpRequest(true);
       await createReport({
         RespondentID: otherUserId || undefined,
         ContractID: job._id,
-        Type: "Other",
-        Severity: "medium",
-        Description: `Issue reported from workspace "${taskTitle}" by ${userInfo?.Name || "a user"}. Please review this contract and contact the user if more information is needed.`,
+        Type: reportForm.Type,
+        Severity: reportForm.Severity,
+        Description: `Workspace "${taskTitle}" report from ${userInfo?.Name || "a user"}: ${description}`,
       });
+      setIsReportDialogOpen(false);
+      setReportForm({ Type: "Quality Issue", Severity: "medium", Description: "" });
       toast.success("Report sent to the support team.");
     } catch (err) {
       toast.error(err.message || "Failed to send report.");
@@ -260,6 +276,12 @@ export function JobWorkspace() {
   };
 
   const handleContactSupport = async () => {
+    const description = supportMessage.trim();
+    if (description.length < 20) {
+      toast.error("Please write at least 20 characters for support.");
+      return;
+    }
+
     try {
       setIsSendingHelpRequest(true);
       await createReport({
@@ -267,10 +289,11 @@ export function JobWorkspace() {
         ContractID: job._id,
         Type: "Other",
         Severity: "low",
-        Description: `Support requested from workspace "${taskTitle}" by ${userInfo?.Name || "a user"}. The user needs help with this job workspace.`,
+        Description: `Support request from workspace "${taskTitle}" by ${userInfo?.Name || "a user"}: ${description}`,
       });
-      toast.success("Support request sent. Opening support page.");
-      navigate("/support/contact");
+      setIsSupportDialogOpen(false);
+      setSupportMessage("");
+      toast.success("Support request sent.");
     } catch (err) {
       toast.error(err.message || "Failed to contact support.");
     } finally {
@@ -647,24 +670,127 @@ export function JobWorkspace() {
             <Card className="bg-blue-50 border-blue-200">
               <CardHeader><CardTitle className="text-lg">Need Help?</CardTitle></CardHeader>
               <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start bg-white"
-                  onClick={handleReportIssue}
-                  disabled={isSendingHelpRequest}
-                >
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Report an Issue
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start bg-white"
-                  onClick={handleContactSupport}
-                  disabled={isSendingHelpRequest}
-                >
-                  <MessageIcon className="h-4 w-4 mr-2" />
-                  Contact Support
-                </Button>
+                <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start bg-white"
+                    >
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Report an Issue
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Report an Issue</DialogTitle>
+                      <DialogDescription>
+                        Send this job to the support team for review.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Issue Type</Label>
+                          <select
+                            className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+                            value={reportForm.Type}
+                            onChange={(event) =>
+                              setReportForm((current) => ({
+                                ...current,
+                                Type: event.target.value,
+                              }))
+                            }
+                          >
+                            <option value="Quality Issue">Quality Issue</option>
+                            <option value="Payment Issue">Payment Issue</option>
+                            <option value="Misconduct">Misconduct</option>
+                            <option value="Dispute">Dispute</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Severity</Label>
+                          <select
+                            className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+                            value={reportForm.Severity}
+                            onChange={(event) =>
+                              setReportForm((current) => ({
+                                ...current,
+                                Severity: event.target.value,
+                              }))
+                            }
+                          >
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>What happened?</Label>
+                        <Textarea
+                          placeholder="Describe the issue clearly..."
+                          value={reportForm.Description}
+                          onChange={(event) =>
+                            setReportForm((current) => ({
+                              ...current,
+                              Description: event.target.value,
+                            }))
+                          }
+                          rows={5}
+                        />
+                      </div>
+                      <Button
+                        className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={handleReportIssue}
+                        disabled={
+                          reportForm.Description.trim().length < 20 ||
+                          isSendingHelpRequest
+                        }
+                      >
+                        {isSendingHelpRequest ? "Sending..." : "Submit Report"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isSupportDialogOpen} onOpenChange={setIsSupportDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start bg-white"
+                    >
+                      <MessageIcon className="h-4 w-4 mr-2" />
+                      Contact Support
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Contact Support</DialogTitle>
+                      <DialogDescription>
+                        Tell support what you need help with on this job.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Message</Label>
+                        <Textarea
+                          placeholder="Write your support request..."
+                          value={supportMessage}
+                          onChange={(event) => setSupportMessage(event.target.value)}
+                          rows={5}
+                        />
+                      </div>
+                      <Button
+                        className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={handleContactSupport}
+                        disabled={supportMessage.trim().length < 20 || isSendingHelpRequest}
+                      >
+                        {isSendingHelpRequest ? "Sending..." : "Send Support Request"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
           </div>
