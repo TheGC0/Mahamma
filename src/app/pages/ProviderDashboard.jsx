@@ -250,7 +250,7 @@ export function ProviderDashboard() {
                   <CardContent>
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm text-gray-600">
-                        Deadline: {job.Status === "delivered" ? DELIVERED_DEADLINE_LABEL : new Date(job.Deadline).toLocaleDateString()}
+                        Deadline: {job.Status === "delivered" ? DELIVERED_DEADLINE_LABEL : new Date(job.DeliveryDate || job.Deadline).toLocaleDateString()}
                       </span>
                     </div>
 

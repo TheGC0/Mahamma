@@ -70,6 +70,7 @@ export function CompareOffers() {
       await createContract({
         ProposalID: selectedOfferId,
         DeliveryDate: deadline.toISOString(),
+        Deadline: deadline.toISOString(),
       });
       navigate("/client/dashboard");
     } catch (err) {

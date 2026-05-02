@@ -64,9 +64,10 @@ export const getContractById = async (req, res, next) => {
 // @access  Private (client only)
 export const createContract = async (req, res, next) => {
   try {
-    const { ProposalID, DeliveryDate } = req.body;
+    const { ProposalID, DeliveryDate, Deadline } = req.body;
+    const requestedDeliveryDate = DeliveryDate || Deadline;
 
-    if (!ProposalID || !DeliveryDate) {
+    if (!ProposalID || !requestedDeliveryDate) {
       res.status(400);
       throw new Error("ProposalID and DeliveryDate are required");
     }
@@ -97,7 +98,7 @@ export const createContract = async (req, res, next) => {
       throw new Error("A contract already exists for this proposal");
     }
 
-    const deliveryDate = new Date(DeliveryDate);
+    const deliveryDate = new Date(requestedDeliveryDate);
     if (isNaN(deliveryDate.getTime()) || deliveryDate <= new Date()) {
       res.status(400);
       throw new Error("DeliveryDate must be a valid future date");

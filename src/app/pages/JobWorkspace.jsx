@@ -158,6 +158,7 @@ export function JobWorkspace() {
   const providerName = job.ProviderID?.Name || job.ProposalID?.FreelancerID?.Name || "Provider";
   const clientName = job.ClientID?.Name || "Client";
   const taskTitle = job.TaskID?.Title || job.ProposalID?.TaskID?.Title || "Job";
+  const jobDeliveryDate = job.DeliveryDate || job.Deadline;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -366,7 +367,11 @@ export function JobWorkspace() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Deadline</p>
-                  <p className="font-medium">{new Date(job.Deadline).toLocaleDateString()}</p>
+                  <p className="font-medium">
+                    {jobDeliveryDate
+                      ? new Date(jobDeliveryDate).toLocaleDateString()
+                      : "Not set"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Started</p>
