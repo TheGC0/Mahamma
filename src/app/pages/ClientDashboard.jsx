@@ -34,6 +34,7 @@ import {
   MessageSquare,
   Clock,
   FileText,
+  ClipboardList,
   Star,
   CheckCircle,
 } from "lucide-react";
@@ -177,9 +178,7 @@ export function ClientDashboard() {
                   <p className="text-sm text-gray-600 mb-1">Total Tasks</p>
                   <p className="text-3xl font-bold text-gray-900">{myRequests.length}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg">
-                  ر.س
-                </div>
+                <ClipboardList className="h-8 w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>

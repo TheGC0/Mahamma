@@ -41,12 +41,21 @@ import {
 } from "lucide-react";
 import { getTasks, createProposal } from "../../lib/api";
 import { categories } from "../lib/categories";
+import { toast } from "sonner";
 
 const EMPTY_OFFER_FORM = { price: "", deliveryTime: "", message: "" };
 
 export function BrowseTasks() {
   const navigate = useNavigate();
   const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+  const currentRole = (userInfo?.Role || userInfo?.role || "").toLowerCase();
+  const isProviderUser = currentRole === "provider" || currentRole === "freelancer";
+  const dashboardPath =
+    currentRole === "admin"
+      ? "/admin"
+      : isProviderUser
+        ? "/provider/dashboard"
+        : "/client/dashboard";
 
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,6 +70,12 @@ export function BrowseTasks() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (userInfo && !isProviderUser) {
+      toast.error("Only provider accounts can browse task requests.");
+      navigate(dashboardPath, { replace: true });
+      return;
+    }
+
     fetchTasks();
   }, [selectedCategory]);
 
@@ -153,6 +168,12 @@ export function BrowseTasks() {
 
   const openOfferDialog = (taskId) => {
     if (!userInfo) { navigate("/login"); return; }
+    if (!isProviderUser) {
+      toast.error("Only provider accounts can submit offers.");
+      navigate(dashboardPath, { replace: true });
+      return;
+    }
+
     setSelectedTaskId(taskId);
     setOfferForm(EMPTY_OFFER_FORM);
     setErrors({});
@@ -282,20 +303,21 @@ export function BrowseTasks() {
                               View Details
                             </Button>
 
-                            <Dialog
-                              open={selectedTaskId === task._id}
-                              onOpenChange={(open) => !open && setSelectedTaskId(null)}
-                            >
-                              <DialogTrigger asChild>
-                                <Button
-                                  className="bg-[#F7931E] hover:bg-[#F7931E]/90"
-                                  onClick={() => openOfferDialog(task._id)}
-                                >
-                                  Submit Offer
-                                </Button>
-                              </DialogTrigger>
+                            {(!userInfo || isProviderUser) && (
+                              <Dialog
+                                open={selectedTaskId === task._id}
+                                onOpenChange={(open) => !open && setSelectedTaskId(null)}
+                              >
+                                <DialogTrigger asChild>
+                                  <Button
+                                    className="bg-[#F7931E] hover:bg-[#F7931E]/90"
+                                    onClick={() => openOfferDialog(task._id)}
+                                  >
+                                    Submit Offer
+                                  </Button>
+                                </DialogTrigger>
 
-                              <DialogContent className="max-w-lg">
+                                <DialogContent className="max-w-lg">
                                 {showSuccess ? (
                                   <div className="text-center py-8">
                                     <div className="bg-green-100 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
@@ -405,8 +427,9 @@ export function BrowseTasks() {
                                     </div>
                                   </>
                                 )}
-                              </DialogContent>
-                            </Dialog>
+                                </DialogContent>
+                              </Dialog>
+                            )}
                           </div>
                         </div>
                       </CardContent>
