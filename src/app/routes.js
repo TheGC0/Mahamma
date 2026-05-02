@@ -56,6 +56,10 @@ export const router = createBrowserRouter([
     Component: RequestDetails,
   },
   {
+    path: "/tasks/:taskId",
+    Component: RequestDetails,
+  },
+  {
     path: "/client/compare-offers/:taskId",
     Component: CompareOffers,
   },

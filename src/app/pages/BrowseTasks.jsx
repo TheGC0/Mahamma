@@ -277,7 +277,7 @@ export function BrowseTasks() {
                           <div className="flex gap-3">
                             <Button
                               variant="outline"
-                              onClick={() => navigate(`/client/request/${task._id}`)}
+                              onClick={() => navigate(`/tasks/${task._id}`)}
                             >
                               View Details
                             </Button>

@@ -42,12 +42,22 @@ export function RequestDetails() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [taskData, proposalsData] = await Promise.all([
-          getTaskById(taskId),
-          getProposalsByTask(taskId),
-        ]);
+        const taskData = await getTaskById(taskId);
         setTask(taskData);
-        setOffers(proposalsData);
+
+        const ownerId = taskData.ClientID?._id || taskData.ClientID;
+        const currentUserId = userInfo?._id || userInfo?.id;
+        const currentRole = (userInfo?.Role || userInfo?.role || "").toLowerCase();
+        const canViewOffers =
+          currentRole === "admin" ||
+          (ownerId && currentUserId && String(ownerId) === String(currentUserId));
+
+        if (canViewOffers) {
+          const proposalsData = await getProposalsByTask(taskId);
+          setOffers(proposalsData);
+        } else {
+          setOffers([]);
+        }
       } catch (err) {
         setError(err.message || "Failed to load task.");
       } finally {
@@ -73,6 +83,15 @@ export function RequestDetails() {
   };
 
   const shortlistedOffers = offers.filter((o) => shortlistedIds.includes(o._id));
+  const taskOwnerId = task?.ClientID?._id || task?.ClientID || "";
+  const currentUserId = userInfo?._id || userInfo?.id || "";
+  const currentRole = (userInfo?.Role || userInfo?.role || "").toLowerCase();
+  const canManageTask =
+    currentRole === "admin" ||
+    Boolean(taskOwnerId && currentUserId && String(taskOwnerId) === String(currentUserId));
+  const isProviderUser = currentRole === "provider" || currentRole === "freelancer";
+  const backPath = canManageTask ? "/client/dashboard" : "/provider/tasks";
+  const backLabel = canManageTask ? "Back to Dashboard" : "Back to Find Tasks";
 
   if (isLoading) {
     return (
@@ -97,9 +116,9 @@ export function RequestDetails() {
       <Header isAuthenticated={!!userInfo} userRole={userInfo?.Role} userName={userInfo?.Name} />
 
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/client/dashboard")} className="mb-4">
+        <Button variant="ghost" onClick={() => navigate(backPath)} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+          {backLabel}
         </Button>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -150,118 +169,132 @@ export function RequestDetails() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Received Offers ({offers.length})</CardTitle>
-                <CardDescription>Review proposals from verified student freelancers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {offers.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-4 flex items-center justify-center">
-                      <Inbox className="h-12 w-12 text-gray-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No offers yet</h3>
-                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                      Your task has been posted successfully. Freelancers will start submitting their proposals soon.
-                    </p>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-                      <p className="text-sm text-blue-900">
-                        💡 <strong>Tip:</strong> Tasks with clear descriptions and realistic budgets typically receive offers within 24 hours.
+            {canManageTask ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Received Offers ({offers.length})</CardTitle>
+                  <CardDescription>Review proposals from verified student freelancers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {offers.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+                        <Inbox className="h-12 w-12 text-gray-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">No offers yet</h3>
+                      <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                        Your task has been posted successfully. Freelancers will start submitting their proposals soon.
                       </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {offers.map((offer) => (
-                      <div
-                        key={offer._id}
-                        className={`p-4 border-2 rounded-lg transition-all ${
-                          shortlistedIds.includes(offer._id)
-                            ? "border-[#F7931E] bg-orange-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-start gap-3">
-                            <div className="bg-gray-200 rounded-full p-2">
-                              <User className="h-5 w-5" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-gray-900">
-                                {offer.FreelancerID?.Name || "Unknown"}
-                              </h4>
-                              <StarRating rating={offer.FreelancerID?.Rating || 0} />
-                            </div>
-                          </div>
-
-                          <Button
-                            variant={shortlistedIds.includes(offer._id) ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => toggleShortlist(offer._id)}
-                            className={shortlistedIds.includes(offer._id) ? "bg-[#F7931E] hover:bg-[#F7931E]/90" : ""}
-                          >
-                            <Star className={`h-4 w-4 mr-1 ${shortlistedIds.includes(offer._id) ? "fill-white" : ""}`} />
-                            {shortlistedIds.includes(offer._id) ? "Shortlisted" : "Shortlist"}
-                          </Button>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 gap-4 mb-4">
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4 text-gray-600" />
-                            <span className="text-sm text-gray-600">Price:</span>
-                            <span className="font-semibold text-[#F7931E]">{offer.BidAmount} SAR</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-gray-600" />
-                            <span className="text-sm text-gray-600">Delivery:</span>
-                            <span className="font-semibold">{offer.EstimatedTime}</span>
-                          </div>
-                        </div>
-
-                        <div className="mb-4">
-                          <p className="text-sm text-gray-700 bg-white p-3 rounded border">
-                            {offer.CoverLetter}
-                          </p>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/providers/${offer.FreelancerID?._id}`)}
-                          >
-                            View Profile
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              navigate(
-                                offer.FreelancerID?._id
-                                  ? `/messages?user=${offer.FreelancerID._id}`
-                                  : "/messages",
-                              )
-                            }
-                          >
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            Message
-                          </Button>
-                        </div>
-
-                        <p className="text-xs text-gray-500 mt-3">
-                          Submitted {new Date(offer.createdAt).toLocaleDateString()}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+                        <p className="text-sm text-blue-900">
+                          Tip: Tasks with clear descriptions and realistic budgets typically receive offers within 24 hours.
                         </p>
                       </div>
-                    ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {offers.map((offer) => (
+                        <div
+                          key={offer._id}
+                          className={`p-4 border-2 rounded-lg transition-all ${
+                            shortlistedIds.includes(offer._id)
+                              ? "border-[#F7931E] bg-orange-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-start gap-3">
+                              <div className="bg-gray-200 rounded-full p-2">
+                                <User className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-gray-900">
+                                  {offer.FreelancerID?.Name || "Unknown"}
+                                </h4>
+                                <StarRating rating={offer.FreelancerID?.Rating || 0} />
+                              </div>
+                            </div>
+
+                            <Button
+                              variant={shortlistedIds.includes(offer._id) ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => toggleShortlist(offer._id)}
+                              className={shortlistedIds.includes(offer._id) ? "bg-[#F7931E] hover:bg-[#F7931E]/90" : ""}
+                            >
+                              <Star className={`h-4 w-4 mr-1 ${shortlistedIds.includes(offer._id) ? "fill-white" : ""}`} />
+                              {shortlistedIds.includes(offer._id) ? "Shortlisted" : "Shortlist"}
+                            </Button>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4 mb-4">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-4 w-4 text-gray-600" />
+                              <span className="text-sm text-gray-600">Price:</span>
+                              <span className="font-semibold text-[#F7931E]">{offer.BidAmount} SAR</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-gray-600" />
+                              <span className="text-sm text-gray-600">Delivery:</span>
+                              <span className="font-semibold">{offer.EstimatedTime}</span>
+                            </div>
+                          </div>
+
+                          <div className="mb-4">
+                            <p className="text-sm text-gray-700 bg-white p-3 rounded border">
+                              {offer.CoverLetter}
+                            </p>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/providers/${offer.FreelancerID?._id}`)}
+                            >
+                              View Profile
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                navigate(
+                                  offer.FreelancerID?._id
+                                    ? `/messages?user=${offer.FreelancerID._id}`
+                                    : "/messages",
+                                )
+                              }
+                            >
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Message
+                            </Button>
+                          </div>
+
+                          <p className="text-xs text-gray-500 mt-3">
+                            Submitted {new Date(offer.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Task Preview</CardTitle>
+                  <CardDescription>This page is read-only for freelancers.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                    You can review the task details here. Proposals are private to the client who posted the task.
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <div className="space-y-6">
-            {shortlistedOffers.length > 0 && (
+            {canManageTask && shortlistedOffers.length > 0 && (
               <Card className="border-[#F7931E]">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -289,38 +322,64 @@ export function RequestDetails() {
               </Card>
             )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {offers.length > 0 && (
+            {canManageTask ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {offers.length > 0 && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => navigate(`/client/compare-offers/${taskId}`)}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Compare All Offers
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     className="w-full justify-start"
-                    onClick={() => navigate(`/client/compare-offers/${taskId}`)}
+                    onClick={() => navigate(`/client/edit-task/${taskId}`)}
                   >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Compare All Offers
+                    <FileText className="h-4 w-4 mr-2" />
+                    Edit Task
                   </Button>
-                )}
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => navigate(`/client/edit-task/${taskId}`)}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Edit Task
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-red-600 hover:text-red-700"
-                  onClick={handleCloseTask}
-                >
-                  <span>Close Task</span>
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-red-600 hover:text-red-700"
+                    onClick={handleCloseTask}
+                  >
+                    <span>Close Task</span>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Task Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => navigate("/provider/tasks")}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Task List
+                  </Button>
+                  {isProviderUser && task.Status === "open" && (
+                    <Button
+                      className="w-full justify-start bg-[#F7931E] hover:bg-[#F7931E]/90"
+                      onClick={() => navigate("/provider/tasks")}
+                    >
+                      Submit Offer From List
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="bg-blue-50 border-blue-200">
               <CardHeader>
@@ -328,10 +387,20 @@ export function RequestDetails() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Use shortlist to mark promising offers</span></li>
-                  <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Check provider ratings and reviews</span></li>
-                  <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Message freelancers to clarify details</span></li>
-                  <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Compare shortlisted offers before deciding</span></li>
+                  {canManageTask ? (
+                    <>
+                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Use shortlist to mark promising offers</span></li>
+                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Check provider ratings and reviews</span></li>
+                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Message freelancers to clarify details</span></li>
+                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Compare shortlisted offers before deciding</span></li>
+                    </>
+                  ) : (
+                    <>
+                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Read the task requirements before sending an offer</span></li>
+                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Use a clear price and realistic delivery time</span></li>
+                      <li className="flex items-start gap-2"><span className="text-[#F7931E]">•</span><span>Client proposals are private and only visible to the client</span></li>
+                    </>
+                  )}
                 </ul>
               </CardContent>
             </Card>
