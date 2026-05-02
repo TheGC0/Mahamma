@@ -10,6 +10,17 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
 import { StarRating } from "../components/StarRating";
 import {
   Clock,
@@ -39,6 +50,13 @@ export function ServiceDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOrdering, setIsOrdering] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [serviceReportForm, setServiceReportForm] = useState({
+    Type: "Quality Issue",
+    OtherType: "",
+    Severity: "medium",
+    Description: "",
+  });
   const [error, setError] = useState("");
   const providerId = service?.ProviderID?._id || "";
   const currentUserId = userInfo?._id || userInfo?.id || "";
@@ -111,14 +129,30 @@ export function ServiceDetail() {
       return;
     }
 
+    const description = serviceReportForm.Description.trim();
+    const otherType = serviceReportForm.OtherType.trim();
+    const issueTypeLabel = serviceReportForm.Type === "Other" ? `Other - ${otherType}` : serviceReportForm.Type;
+
+    if (serviceReportForm.Type === "Other" && otherType.length < 3) {
+      toast.error("Please write the other issue type.");
+      return;
+    }
+
+    if (description.length < 20) {
+      toast.error("Please describe the issue in at least 20 characters.");
+      return;
+    }
+
     try {
       setIsReporting(true);
       await createReport({
         RespondentID: service.ProviderID?._id,
-        Type: "Other",
-        Severity: "medium",
-        Description: `Service report submitted for "${service.Title}" by ${userInfo.Name || "a user"}. Please review this service listing and provider profile.`,
+        Type: serviceReportForm.Type,
+        Severity: serviceReportForm.Severity,
+        Description: `Service report submitted for "${service.Title}" by ${userInfo.Name || "a user"}. Issue type: ${issueTypeLabel}. Details: ${description}`,
       });
+      setIsReportDialogOpen(false);
+      setServiceReportForm({ Type: "Quality Issue", OtherType: "", Severity: "medium", Description: "" });
       toast.success("Service report sent to the support team.");
     } catch (err) {
       toast.error(err.message || "Failed to report service.");
@@ -285,6 +319,13 @@ export function ServiceDetail() {
                       </div>
                       <Button
                         className="w-full h-12 text-lg bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={() => navigate(`/provider/edit-service/${service._id}`)}
+                      >
+                        Edit Service
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full h-12"
                         onClick={() => navigate("/provider/dashboard")}
                       >
                         Manage Orders
@@ -375,16 +416,107 @@ export function ServiceDetail() {
                 Share
               </Button>
               {!isOwner && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-400 hover:text-red-500"
-                  onClick={handleReportService}
-                  disabled={isReporting}
-                >
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  {isReporting ? "Reporting..." : "Report"}
-                </Button>
+                <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-400 hover:text-red-500"
+                    >
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Report
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Report This Service</DialogTitle>
+                      <DialogDescription>
+                        Choose the issue type and explain what support should review.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Issue Type</Label>
+                          <select
+                            className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+                            value={serviceReportForm.Type}
+                            onChange={(event) =>
+                              setServiceReportForm((current) => ({
+                                ...current,
+                                Type: event.target.value,
+                                OtherType: event.target.value === "Other" ? current.OtherType : "",
+                              }))
+                            }
+                          >
+                            <option value="Quality Issue">Quality Issue</option>
+                            <option value="Payment Issue">Payment Issue</option>
+                            <option value="Misconduct">Misconduct</option>
+                            <option value="Dispute">Dispute</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Severity</Label>
+                          <select
+                            className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+                            value={serviceReportForm.Severity}
+                            onChange={(event) =>
+                              setServiceReportForm((current) => ({
+                                ...current,
+                                Severity: event.target.value,
+                              }))
+                            }
+                          >
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                          </select>
+                        </div>
+                      </div>
+                      {serviceReportForm.Type === "Other" && (
+                        <div className="space-y-2">
+                          <Label>Other Issue Type</Label>
+                          <Input
+                            placeholder="Example: Fake listing, wrong category, account problem..."
+                            value={serviceReportForm.OtherType}
+                            onChange={(event) =>
+                              setServiceReportForm((current) => ({
+                                ...current,
+                                OtherType: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <Label>What happened?</Label>
+                        <Textarea
+                          placeholder="Describe the service issue clearly..."
+                          value={serviceReportForm.Description}
+                          onChange={(event) =>
+                            setServiceReportForm((current) => ({
+                              ...current,
+                              Description: event.target.value,
+                            }))
+                          }
+                          rows={5}
+                        />
+                      </div>
+                      <Button
+                        className="w-full bg-[#F7931E] hover:bg-[#F7931E]/90"
+                        onClick={handleReportService}
+                        disabled={
+                          serviceReportForm.Description.trim().length < 20 ||
+                          (serviceReportForm.Type === "Other" && serviceReportForm.OtherType.trim().length < 3) ||
+                          isReporting
+                        }
+                      >
+                        {isReporting ? "Sending..." : "Submit Report"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
           </div>

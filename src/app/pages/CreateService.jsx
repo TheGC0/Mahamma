@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useParams } from "react-router";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
 import { Button } from "../components/ui/button";
@@ -22,11 +22,17 @@ import {
 } from "../components/ui/select";
 import { categories } from "../lib/categories";
 import { DollarSign, Clock, AlertCircle } from "lucide-react";
-import { createService } from "../../lib/api";
+import { createService, deleteService, getServiceById, updateService } from "../../lib/api";
+import { toast } from "sonner";
 
 export function CreateService() {
   const navigate = useNavigate();
-  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
+  const { serviceId } = useParams();
+  const userInfo = useMemo(
+    () => JSON.parse(localStorage.getItem("userInfo") || "null"),
+    [],
+  );
+  const isEditMode = Boolean(serviceId);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -38,12 +44,46 @@ export function CreateService() {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(isEditMode);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     if (!userInfo) { navigate("/login"); return; }
     if (userInfo.Role !== "provider") { navigate("/client/dashboard"); }
-  }, []);
+  }, [navigate, userInfo]);
+
+  useEffect(() => {
+    if (!isEditMode || !userInfo) return;
+
+    const fetchService = async () => {
+      try {
+        setIsPageLoading(true);
+        setSubmitError("");
+        const service = await getServiceById(serviceId);
+        const providerId = service.ProviderID?._id || service.ProviderID;
+
+        if (String(providerId) !== String(userInfo._id)) {
+          navigate("/provider/dashboard");
+          return;
+        }
+
+        setFormData({
+          title: service.Title || "",
+          category: service.Category || "",
+          description: service.Description || "",
+          price: service.Price?.toString() || "",
+          deliveryTime: service.DeliveryTime || "",
+        });
+      } catch (err) {
+        setSubmitError(err.message || "Failed to load service.");
+      } finally {
+        setIsPageLoading(false);
+      }
+    };
+
+    fetchService();
+  }, [isEditMode, navigate, serviceId, userInfo]);
 
   const validateField = (name, value, current = errors) => {
     const newErrors = { ...current };
@@ -99,20 +139,52 @@ export function CreateService() {
     try {
       setIsLoading(true);
       setSubmitError("");
-      const service = await createService({
+      const payload = {
         Title: formData.title,
         Category: formData.category,
         Description: formData.description,
         Price: Number(formData.price),
         DeliveryTime: formData.deliveryTime,
-      });
-      navigate(`/services/${service._id}`);
+      };
+
+      const service = isEditMode
+        ? await updateService(serviceId, payload)
+        : await createService(payload);
+
+      toast.success(isEditMode ? "Service updated." : "Service created.");
+      navigate(isEditMode ? "/provider/dashboard" : `/provider/edit-service/${service._id}`);
     } catch (err) {
-      setSubmitError(err.message || "Failed to create service.");
+      setSubmitError(err.message || `Failed to ${isEditMode ? "update" : "create"} service.`);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleDelete = async () => {
+    if (!isEditMode) return;
+    const confirmed = window.confirm("Delete this service? This cannot be undone.");
+    if (!confirmed) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteService(serviceId);
+      toast.success("Service deleted.");
+      navigate("/provider/dashboard");
+    } catch (err) {
+      setSubmitError(err.message || "Failed to delete service.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header isAuthenticated={!!userInfo} userRole={userInfo?.Role} userName={userInfo?.Name} />
+        <div className="flex items-center justify-center py-32 text-gray-500">Loading service...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -120,14 +192,20 @@ export function CreateService() {
 
       <div className="container mx-auto max-w-3xl px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Service Offer</h1>
-          <p className="text-gray-600">Showcase your skills and attract clients</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {isEditMode ? "Manage Service" : "Create Service Offer"}
+          </h1>
+          <p className="text-gray-600">
+            {isEditMode ? "Update your listing details and pricing" : "Showcase your skills and attract clients"}
+          </p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Service Details</CardTitle>
-            <CardDescription>Provide detailed information about your service</CardDescription>
+            <CardDescription>
+              {isEditMode ? "Clients will see these details on your service page" : "Provide detailed information about your service"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {submitError && (
@@ -263,11 +341,22 @@ export function CreateService() {
 
               <div className="flex gap-4 pt-4">
                 <Button type="submit" className="flex-1 bg-[#F7931E] hover:bg-[#F7931E]/90" disabled={isLoading}>
-                  {isLoading ? "Creating..." : "Create Service"}
+                  {isLoading ? (isEditMode ? "Saving..." : "Creating...") : (isEditMode ? "Save Changes" : "Create Service")}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => navigate("/provider/dashboard")}>
                   Cancel
                 </Button>
+                {isEditMode && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </Button>
+                )}
               </div>
             </form>
           </CardContent>

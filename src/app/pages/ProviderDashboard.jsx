@@ -230,9 +230,12 @@ export function ProviderDashboard() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button variant="outline" className="flex-1" onClick={() => navigate(`/services/${service._id}`)}>
+                        <Button variant="outline" className="flex-1" onClick={() => navigate(`/provider/edit-service/${service._id}`)}>
                           <Eye className="h-4 w-4 mr-2" />
-                          View
+                          Manage
+                        </Button>
+                        <Button variant="outline" className="flex-1" onClick={() => navigate(`/services/${service._id}`)}>
+                          Preview
                         </Button>
                       </div>
                     </CardContent>

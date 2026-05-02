@@ -76,6 +76,10 @@ export const router = createBrowserRouter([
     Component: CreateService,
   },
   {
+    path: "/provider/edit-service/:serviceId",
+    Component: CreateService,
+  },
+  {
     path: "/provider/tasks",
     Component: BrowseTasks,
   },

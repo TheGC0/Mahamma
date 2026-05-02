@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import {
   Card,
   CardContent,
@@ -71,6 +72,7 @@ export function JobWorkspace() {
   const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
   const [reportForm, setReportForm] = useState({
     Type: "Quality Issue",
+    OtherType: "",
     Severity: "medium",
     Description: "",
   });
@@ -251,6 +253,14 @@ export function JobWorkspace() {
 
   const handleReportIssue = async () => {
     const description = reportForm.Description.trim();
+    const otherType = reportForm.OtherType.trim();
+    const issueTypeLabel = reportForm.Type === "Other" ? `Other - ${otherType}` : reportForm.Type;
+
+    if (reportForm.Type === "Other" && otherType.length < 3) {
+      toast.error("Please write the other issue type.");
+      return;
+    }
+
     if (description.length < 20) {
       toast.error("Please describe the issue in at least 20 characters.");
       return;
@@ -263,10 +273,10 @@ export function JobWorkspace() {
         ContractID: job._id,
         Type: reportForm.Type,
         Severity: reportForm.Severity,
-        Description: `Workspace "${taskTitle}" report from ${userInfo?.Name || "a user"}: ${description}`,
+        Description: `Workspace "${taskTitle}" report from ${userInfo?.Name || "a user"}. Issue type: ${issueTypeLabel}. Details: ${description}`,
       });
       setIsReportDialogOpen(false);
-      setReportForm({ Type: "Quality Issue", Severity: "medium", Description: "" });
+      setReportForm({ Type: "Quality Issue", OtherType: "", Severity: "medium", Description: "" });
       toast.success("Report sent to the support team.");
     } catch (err) {
       toast.error(err.message || "Failed to send report.");
@@ -698,6 +708,7 @@ export function JobWorkspace() {
                               setReportForm((current) => ({
                                 ...current,
                                 Type: event.target.value,
+                                OtherType: event.target.value === "Other" ? current.OtherType : "",
                               }))
                             }
                           >
@@ -726,6 +737,21 @@ export function JobWorkspace() {
                           </select>
                         </div>
                       </div>
+                      {reportForm.Type === "Other" && (
+                        <div className="space-y-2">
+                          <Label>Other Issue Type</Label>
+                          <Input
+                            placeholder="Example: Missing files, unclear request, account problem..."
+                            value={reportForm.OtherType}
+                            onChange={(event) =>
+                              setReportForm((current) => ({
+                                ...current,
+                                OtherType: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <Label>What happened?</Label>
                         <Textarea
@@ -745,6 +771,7 @@ export function JobWorkspace() {
                         onClick={handleReportIssue}
                         disabled={
                           reportForm.Description.trim().length < 20 ||
+                          (reportForm.Type === "Other" && reportForm.OtherType.trim().length < 3) ||
                           isSendingHelpRequest
                         }
                       >
